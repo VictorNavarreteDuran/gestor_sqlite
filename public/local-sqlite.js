@@ -197,15 +197,61 @@ END;
 -- ÍNDICES DE RENDIMIENTO
 -- ==========================================
 CREATE INDEX idx_productos_busqueda ON productos(nombre, sku, codigo_barras);
+CREATE INDEX idx_productos_activo_stock ON productos(activo, stock_actual, stock_minimo);
 CREATE INDEX idx_ventas_fecha ON ventas(fecha_venta, estado);
+CREATE INDEX idx_ventas_fecha_id ON ventas(fecha_venta DESC, id_venta DESC);
+CREATE INDEX idx_ventas_estado_fecha ON ventas(estado, fecha_venta);
+CREATE INDEX idx_ventas_id_cliente ON ventas(id_cliente);
 CREATE INDEX idx_detalle_ventas_prod ON detalle_ventas(id_producto);
+CREATE INDEX idx_detalle_ventas_id_venta ON detalle_ventas(id_venta);
+CREATE INDEX idx_pagos_venta_id_venta ON pagos_venta(id_venta);
 CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fecha);
+CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, tipo_movimiento, fecha DESC, id_movimiento DESC);
 `;
 
   let sqlJsPromise = null;
   let activeDbInstance = null;
   let activeFileMeta = null; // { originalName, sizeBytes, tables, uploadedAt, hasDirectFileHandle }
   let activeFileHandle = null;
+
+  function ensurePerformanceIndexes(db, tableNames = []) {
+    const tables = new Set(tableNames);
+    const indexStatements = [
+      [
+        'productos',
+        'CREATE INDEX IF NOT EXISTS idx_productos_activo_stock ON productos(activo, stock_actual, stock_minimo);',
+      ],
+      [
+        'ventas',
+        'CREATE INDEX IF NOT EXISTS idx_ventas_fecha_id ON ventas(fecha_venta DESC, id_venta DESC);',
+      ],
+      [
+        'ventas',
+        'CREATE INDEX IF NOT EXISTS idx_ventas_estado_fecha ON ventas(estado, fecha_venta);',
+      ],
+      ['ventas', 'CREATE INDEX IF NOT EXISTS idx_ventas_id_cliente ON ventas(id_cliente);'],
+      [
+        'detalle_ventas',
+        'CREATE INDEX IF NOT EXISTS idx_detalle_ventas_id_venta ON detalle_ventas(id_venta);',
+      ],
+      [
+        'pagos_venta',
+        'CREATE INDEX IF NOT EXISTS idx_pagos_venta_id_venta ON pagos_venta(id_venta);',
+      ],
+      [
+        'movimientos_inventario',
+        'CREATE INDEX IF NOT EXISTS idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, tipo_movimiento, fecha DESC, id_movimiento DESC);',
+      ],
+    ];
+
+    for (const [tableName, sql] of indexStatements) {
+      if (tables.has(tableName)) {
+        try {
+          db.run(sql);
+        } catch (_) {}
+      }
+    }
+  }
 
   function loadSqlJsEngine() {
     if (sqlJsPromise) return sqlJsPromise;
@@ -239,16 +285,25 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
   }
 
   function queryGet(db, sql, params = []) {
-    const rows = queryAll(db, sql, params);
-    return rows.length > 0 ? rows[0] : undefined;
+    const stmt = db.prepare(sql);
+    try {
+      stmt.bind(sanitizeParams(params));
+      return stmt.step() ? stmt.getAsObject() : undefined;
+    } finally {
+      stmt.free();
+    }
   }
 
   function runStmt(db, sql, params = []) {
     db.run(sql, sanitizeParams(params));
-    const lastRow = queryGet(db, 'SELECT last_insert_rowid() AS id');
     const changes = db.getRowsModified();
+    let lastInsertRowid = 0;
+    if (/^\s*INSERT\b/i.test(sql)) {
+      const lastRow = queryGet(db, 'SELECT last_insert_rowid() AS id');
+      lastInsertRowid = lastRow ? Number(lastRow.id) : 0;
+    }
     return {
-      lastInsertRowid: lastRow ? Number(lastRow.id) : 0,
+      lastInsertRowid,
       changes,
     };
   }
@@ -273,6 +328,9 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
       `sess_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     sessionStorage.setItem(SESSION_FLAG_KEY, sessionId);
 
+    // Evita clonar el buffer completo en RAM si ya es instancia de Uint8Array
+    const uint8Bytes = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+
     const idb = await openIdb();
     return new Promise((resolve, reject) => {
       const tx = idb.transaction(IDB_STORE, 'readwrite');
@@ -280,7 +338,7 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
       store.put(
         {
           sessionId,
-          bytes: new Uint8Array(bytes),
+          bytes: uint8Bytes,
           meta,
           fileHandle: fileHandle || null,
           updatedAt: new Date().toISOString(),
@@ -390,15 +448,18 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
       }
 
       const SQL = await loadSqlJsEngine();
-      const db = new SQL.Database(new Uint8Array(record.bytes));
+      const dbBytes =
+        record.bytes instanceof Uint8Array ? record.bytes : new Uint8Array(record.bytes);
+      const db = new SQL.Database(dbBytes);
       db.run('PRAGMA foreign_keys = ON;');
 
       const tables = listUserTables(db);
+      ensurePerformanceIndexes(db, tables);
       activeDbInstance = db;
       activeFileHandle = record.fileHandle || null;
       activeFileMeta = {
         ...record.meta,
-        sizeBytes: record.bytes.byteLength,
+        sizeBytes: dbBytes.byteLength,
         tables,
         hasDirectFileHandle: Boolean(activeFileHandle),
       };
@@ -436,6 +497,7 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
       db = new SQL.Database(bytes);
       db.run('PRAGMA foreign_keys = ON;');
       const tables = listUserTables(db);
+      ensurePerformanceIndexes(db, tables);
 
       if (activeDbInstance) {
         try {
@@ -634,42 +696,174 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
   // ==========================================
   // CONSULTAS DEL PANEL DE INICIO (DASHBOARD)
   // ==========================================
+  const MESES_NOMBRES_ES = [
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
+  ];
+
   async function getDashboardData() {
     await ensureLoadedInTab();
     const db = requireActiveDb();
 
     const existingTables = new Set(listUserTables(db));
 
+    const now = new Date();
+    const anioActual = String(now.getFullYear());
+    const mesActualIdx = now.getMonth();
+    const mesActualNum = String(mesActualIdx + 1).padStart(2, '0');
+    const mesActualKey = `${anioActual}-${mesActualNum}`;
+    const mesActualNombre = MESES_NOMBRES_ES[mesActualIdx];
+    const mesActualLabel = `${mesActualNombre} ${anioActual}`;
+
+    const prevDate = new Date(now.getFullYear(), mesActualIdx - 1, 1);
+    const anioPasado = String(prevDate.getFullYear());
+    const mesPasadoIdx = prevDate.getMonth();
+    const mesPasadoNum = String(mesPasadoIdx + 1).padStart(2, '0');
+    const mesPasadoKey = `${anioPasado}-${mesPasadoNum}`;
+    const mesPasadoNombre = MESES_NOMBRES_ES[mesPasadoIdx];
+    const mesPasadoLabel = `${mesPasadoNombre} ${anioPasado}`;
+
+    const diaHoyNum = String(now.getDate()).padStart(2, '0');
+    const hoyKey = `${anioActual}-${mesActualNum}-${diaHoyNum}`;
+    const hoyLabel = `${now.getDate()} de ${mesActualNombre} de ${anioActual}`;
+
+    // Límites de rango ISO (SARGables) para aprovechar el índice B-Tree idx_ventas_estado_fecha(estado, fecha_venta)
+    const tomorrowDate = new Date(now.getFullYear(), mesActualIdx, now.getDate() + 1);
+    const mananaKey = `${tomorrowDate.getFullYear()}-${String(
+      tomorrowDate.getMonth() + 1
+    ).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
+
+    const nextMonthDate = new Date(now.getFullYear(), mesActualIdx + 1, 1);
+    const mesSiguienteKey = `${nextMonthDate.getFullYear()}-${String(
+      nextMonthDate.getMonth() + 1
+    ).padStart(2, '0')}`;
+
+    const mesActualInicioIso = `${mesActualKey}-01`;
+    const mesSiguienteInicioIso = `${mesSiguienteKey}-01`;
+    const mesPasadoInicioIso = `${mesPasadoKey}-01`;
+    const anioInicioIso = `${anioActual}-01-01`;
+    const anioFinExclusivoIso = `${Number(anioActual) + 1}-01-01`;
+
+    const periodInfo = {
+      hoyKey,
+      hoyLabel,
+      anioActual,
+      mesActualNum,
+      mesActualKey,
+      mesActualNombre,
+      mesActualLabel,
+      anioPasado,
+      mesPasadoNum,
+      mesPasadoKey,
+      mesPasadoNombre,
+      mesPasadoLabel,
+    };
+
     const salesSummary = {
       hoyMonto: 0,
       hoyCantidad: 0,
       mesMonto: 0,
       mesCantidad: 0,
+      mesPasadoMonto: 0,
+      mesPasadoCantidad: 0,
+      anioMonto: 0,
+      anioCantidad: 0,
+      anioUtilidad: 0,
       totalMonto: 0,
       totalCantidad: 0,
       utilidadEstimada: 0,
       ticketPromedio: 0,
       totalProductosActivos: 0,
       totalStockBajo: 0,
+      stockCriticoCount: 0,
+      stockPrecaucionCount: 0,
+      stockSugerenciaCount: 0,
+      stockTotalAvisos: 0,
     };
 
     let lowStockProducts = [];
     let topSellingProducts = [];
     let recentSales = [];
+    let annualIncomeByMonth = [];
+    const annualTotals = {
+      anio: anioActual,
+      cantidad_ventas: 0,
+      subtotal_neto: 0,
+      total_iva: 0,
+      descuento_global: 0,
+      total_venta: 0,
+      unidades_vendidas: 0,
+      utilidad_estimada: 0,
+    };
+
+    const monthComparison = {
+      mesActualLabel,
+      mesPasadoLabel,
+      mesActualNombre,
+      mesPasadoNombre,
+      actual: {
+        cantidad_ventas: 0,
+        subtotal_neto: 0,
+        total_iva: 0,
+        descuento_global: 0,
+        total_venta: 0,
+        ticket_promedio: 0,
+        unidades_vendidas: 0,
+        utilidad_estimada: 0,
+      },
+      pasado: {
+        cantidad_ventas: 0,
+        subtotal_neto: 0,
+        total_iva: 0,
+        descuento_global: 0,
+        total_venta: 0,
+        ticket_promedio: 0,
+        unidades_vendidas: 0,
+        utilidad_estimada: 0,
+      },
+    };
 
     if (existingTables.has('ventas')) {
       const hoy = queryGet(
         db,
         `SELECT COALESCE(SUM(total_venta), 0) AS monto, COUNT(*) AS cantidad
          FROM ventas
-         WHERE estado = 'COMPLETADA' AND date(fecha_venta) = date('now', 'localtime')`
+         WHERE estado = 'COMPLETADA' AND fecha_venta >= ? AND fecha_venta < ?`,
+        [hoyKey, mananaKey]
       );
 
       const mes = queryGet(
         db,
-        `SELECT COALESCE(SUM(total_venta), 0) AS monto, COUNT(*) AS cantidad
+        `SELECT COALESCE(SUM(total_venta), 0) AS monto,
+                COALESCE(SUM(subtotal_neto), 0) AS neto,
+                COALESCE(SUM(total_iva), 0) AS iva,
+                COALESCE(SUM(descuento_global), 0) AS descuento,
+                COUNT(*) AS cantidad
          FROM ventas
-         WHERE estado = 'COMPLETADA' AND strftime('%Y-%m', fecha_venta) = strftime('%Y-%m', 'now', 'localtime')`
+         WHERE estado = 'COMPLETADA' AND fecha_venta >= ? AND fecha_venta < ?`,
+        [mesActualInicioIso, mesSiguienteInicioIso]
+      );
+
+      const mesPasado = queryGet(
+        db,
+        `SELECT COALESCE(SUM(total_venta), 0) AS monto,
+                COALESCE(SUM(subtotal_neto), 0) AS neto,
+                COALESCE(SUM(total_iva), 0) AS iva,
+                COALESCE(SUM(descuento_global), 0) AS descuento,
+                COUNT(*) AS cantidad
+         FROM ventas
+         WHERE estado = 'COMPLETADA' AND fecha_venta >= ? AND fecha_venta < ?`,
+        [mesPasadoInicioIso, mesActualInicioIso]
       );
 
       const total = queryGet(
@@ -683,10 +877,111 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
       salesSummary.hoyCantidad = Number(hoy?.cantidad) || 0;
       salesSummary.mesMonto = Number(mes?.monto) || 0;
       salesSummary.mesCantidad = Number(mes?.cantidad) || 0;
+      salesSummary.mesPasadoMonto = Number(mesPasado?.monto) || 0;
+      salesSummary.mesPasadoCantidad = Number(mesPasado?.cantidad) || 0;
       salesSummary.totalMonto = Number(total?.monto) || 0;
       salesSummary.totalCantidad = Number(total?.cantidad) || 0;
       salesSummary.ticketPromedio =
         salesSummary.totalCantidad > 0 ? salesSummary.totalMonto / salesSummary.totalCantidad : 0;
+
+      monthComparison.actual.cantidad_ventas = salesSummary.mesCantidad;
+      monthComparison.actual.subtotal_neto = Number(mes?.neto) || 0;
+      monthComparison.actual.total_iva = Number(mes?.iva) || 0;
+      monthComparison.actual.descuento_global = Number(mes?.descuento) || 0;
+      monthComparison.actual.total_venta = salesSummary.mesMonto;
+      monthComparison.actual.ticket_promedio =
+        salesSummary.mesCantidad > 0 ? salesSummary.mesMonto / salesSummary.mesCantidad : 0;
+
+      monthComparison.pasado.cantidad_ventas = salesSummary.mesPasadoCantidad;
+      monthComparison.pasado.subtotal_neto = Number(mesPasado?.neto) || 0;
+      monthComparison.pasado.total_iva = Number(mesPasado?.iva) || 0;
+      monthComparison.pasado.descuento_global = Number(mesPasado?.descuento) || 0;
+      monthComparison.pasado.total_venta = salesSummary.mesPasadoMonto;
+      monthComparison.pasado.ticket_promedio =
+        salesSummary.mesPasadoCantidad > 0
+          ? salesSummary.mesPasadoMonto / salesSummary.mesPasadoCantidad
+          : 0;
+
+      // Desglose mensual del año actual (Ingresos del Año) usando rango indexado
+      const ventasPorMesRows = queryAll(
+        db,
+        `SELECT SUBSTR(fecha_venta, 6, 2) AS mes_num,
+                COUNT(*) AS cantidad_ventas,
+                COALESCE(SUM(subtotal_neto), 0) AS subtotal_neto,
+                COALESCE(SUM(total_iva), 0) AS total_iva,
+                COALESCE(SUM(descuento_global), 0) AS descuento_global,
+                COALESCE(SUM(total_venta), 0) AS total_venta
+         FROM ventas
+         WHERE estado = 'COMPLETADA' AND fecha_venta >= ? AND fecha_venta < ?
+         GROUP BY SUBSTR(fecha_venta, 6, 2)
+         ORDER BY mes_num ASC`,
+        [anioInicioIso, anioFinExclusivoIso]
+      );
+
+      const detallePorMesMap = new Map();
+      if (existingTables.has('detalle_ventas')) {
+        const detallePorMesRows = queryAll(
+          db,
+          `SELECT SUBSTR(v.fecha_venta, 6, 2) AS mes_num,
+                  COALESCE(SUM(dv.cantidad), 0) AS unidades_vendidas,
+                  COALESCE(SUM(dv.subtotal - (dv.costo_unitario_historico * dv.cantidad)), 0) AS utilidad_estimada
+           FROM ventas v
+           INNER JOIN detalle_ventas dv ON dv.id_venta = v.id_venta
+           WHERE v.estado = 'COMPLETADA' AND v.fecha_venta >= ? AND v.fecha_venta < ?
+           GROUP BY SUBSTR(v.fecha_venta, 6, 2)`,
+          [anioInicioIso, anioFinExclusivoIso]
+        );
+        for (const r of detallePorMesRows) {
+          detallePorMesMap.set(String(r.mes_num), {
+            unidades_vendidas: Number(r.unidades_vendidas) || 0,
+            utilidad_estimada: Number(r.utilidad_estimada) || 0,
+          });
+        }
+      }
+
+      const ventasPorMesMap = new Map();
+      for (const r of ventasPorMesRows) {
+        ventasPorMesMap.set(String(r.mes_num), r);
+      }
+
+      annualIncomeByMonth = MESES_NOMBRES_ES.map((nombreMes, idx) => {
+        const mNum = String(idx + 1).padStart(2, '0');
+        const vRow = ventasPorMesMap.get(mNum);
+        const dRow = detallePorMesMap.get(mNum);
+
+        const cantidad_ventas = Number(vRow?.cantidad_ventas) || 0;
+        const subtotal_neto = Number(vRow?.subtotal_neto) || 0;
+        const total_iva = Number(vRow?.total_iva) || 0;
+        const descuento_global = Number(vRow?.descuento_global) || 0;
+        const total_venta = Number(vRow?.total_venta) || 0;
+        const unidades_vendidas = Number(dRow?.unidades_vendidas) || 0;
+        const utilidad_estimada = Number(dRow?.utilidad_estimada) || 0;
+
+        annualTotals.cantidad_ventas += cantidad_ventas;
+        annualTotals.subtotal_neto += subtotal_neto;
+        annualTotals.total_iva += total_iva;
+        annualTotals.descuento_global += descuento_global;
+        annualTotals.total_venta += total_venta;
+        annualTotals.unidades_vendidas += unidades_vendidas;
+        annualTotals.utilidad_estimada += utilidad_estimada;
+
+        return {
+          mes_num: mNum,
+          mes_nombre: nombreMes,
+          es_mes_actual: mNum === mesActualNum,
+          cantidad_ventas,
+          subtotal_neto,
+          total_iva,
+          descuento_global,
+          total_venta,
+          unidades_vendidas,
+          utilidad_estimada,
+        };
+      });
+
+      salesSummary.anioMonto = annualTotals.total_venta;
+      salesSummary.anioCantidad = annualTotals.cantidad_ventas;
+      salesSummary.anioUtilidad = annualTotals.utilidad_estimada;
 
       if (existingTables.has('clientes')) {
         recentSales = queryAll(
@@ -705,24 +1000,62 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
       const utilidad = queryGet(
         db,
         `SELECT COALESCE(SUM(dv.subtotal - (dv.costo_unitario_historico * dv.cantidad)), 0) AS utilidad
-         FROM detalle_ventas dv
-         INNER JOIN ventas v ON v.id_venta = dv.id_venta
+         FROM ventas v
+         INNER JOIN detalle_ventas dv ON dv.id_venta = v.id_venta
          WHERE v.estado = 'COMPLETADA'`
       );
       salesSummary.utilidadEstimada = Number(utilidad?.utilidad) || 0;
+
+      const compDetalleRows = queryAll(
+        db,
+        `SELECT SUBSTR(v.fecha_venta, 1, 7) AS periodo,
+                COALESCE(SUM(dv.cantidad), 0) AS unidades_vendidas,
+                COALESCE(SUM(dv.subtotal - (dv.costo_unitario_historico * dv.cantidad)), 0) AS utilidad_estimada
+         FROM ventas v
+         INNER JOIN detalle_ventas dv ON dv.id_venta = v.id_venta
+         WHERE v.estado = 'COMPLETADA'
+           AND v.fecha_venta >= ?
+           AND v.fecha_venta < ?
+         GROUP BY SUBSTR(v.fecha_venta, 1, 7)`,
+        [mesPasadoInicioIso, mesSiguienteInicioIso]
+      );
+
+      for (const r of compDetalleRows) {
+        if (r.periodo === mesActualKey) {
+          monthComparison.actual.unidades_vendidas = Number(r.unidades_vendidas) || 0;
+          monthComparison.actual.utilidad_estimada = Number(r.utilidad_estimada) || 0;
+        } else if (r.periodo === mesPasadoKey) {
+          monthComparison.pasado.unidades_vendidas = Number(r.unidades_vendidas) || 0;
+          monthComparison.pasado.utilidad_estimada = Number(r.utilidad_estimada) || 0;
+        }
+      }
     }
 
     if (existingTables.has('productos')) {
+      // Clasificación de avisos de stock con margen de ±7 unidades respecto al stock_minimo:
+      // - CRITICO: 7 o más productos por debajo del stock mínimo (o stock_actual <= 0)
+      // - PRECAUCION: en el stock mínimo o hasta 7 productos por debajo (stock_minimo - 7 < stock_actual <= stock_minimo)
+      // - SUGERENCIA: hasta 7 productos por arriba del stock mínimo (stock_minimo < stock_actual <= stock_minimo + 7)
       const prodStats = queryGet(
         db,
         `SELECT COUNT(*) AS total,
-                COALESCE(SUM(CASE WHEN stock_actual <= stock_minimo THEN 1 ELSE 0 END), 0) AS bajo
+                COALESCE(SUM(CASE WHEN stock_actual <= stock_minimo THEN 1 ELSE 0 END), 0) AS bajo,
+                COALESCE(SUM(CASE WHEN stock_actual <= 0 OR stock_actual <= (stock_minimo - 7) THEN 1 ELSE 0 END), 0) AS critico,
+                COALESCE(SUM(CASE WHEN stock_actual > 0 AND stock_actual > (stock_minimo - 7) AND stock_actual <= stock_minimo THEN 1 ELSE 0 END), 0) AS precaucion,
+                COALESCE(SUM(CASE WHEN stock_actual > stock_minimo AND stock_actual <= (stock_minimo + 7) THEN 1 ELSE 0 END), 0) AS sugerencia
          FROM productos
          WHERE activo = 1`
       );
 
       salesSummary.totalProductosActivos = Number(prodStats?.total) || 0;
       salesSummary.totalStockBajo = Number(prodStats?.bajo) || 0;
+      salesSummary.stockCriticoCount = Number(prodStats?.critico) || 0;
+      salesSummary.stockPrecaucionCount = Number(prodStats?.precaucion) || 0;
+      salesSummary.stockSugerenciaCount = Number(prodStats?.sugerencia) || 0;
+      salesSummary.stockTotalAvisos =
+        salesSummary.stockCriticoCount +
+        salesSummary.stockPrecaucionCount +
+        salesSummary.stockSugerenciaCount;
 
       const hasCategorias = existingTables.has('categorias');
       lowStockProducts = queryAll(
@@ -730,19 +1063,45 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
         hasCategorias
           ? `SELECT p.id_producto, p.sku, p.codigo_barras, p.nombre, p.unidad_medida,
                     p.stock_actual, p.stock_minimo, p.precio_venta_final,
+                    (p.stock_actual - p.stock_minimo) AS diferencia_minimo,
+                    CASE
+                      WHEN p.stock_actual <= 0 OR p.stock_actual <= (p.stock_minimo - 7) THEN 'CRITICO'
+                      WHEN p.stock_actual <= p.stock_minimo THEN 'PRECAUCION'
+                      ELSE 'SUGERENCIA'
+                    END AS categoria_aviso,
                     COALESCE(c.nombre, 'Sin categoría') AS categoria
              FROM productos p
              LEFT JOIN categorias c ON c.id_categoria = p.id_categoria
-             WHERE p.activo = 1 AND p.stock_actual <= p.stock_minimo
-             ORDER BY (p.stock_actual - p.stock_minimo) ASC, p.stock_actual ASC
-             LIMIT 15`
+             WHERE p.activo = 1 AND p.stock_actual <= (p.stock_minimo + 7)
+             ORDER BY
+               CASE
+                 WHEN p.stock_actual <= 0 OR p.stock_actual <= (p.stock_minimo - 7) THEN 1
+                 WHEN p.stock_actual <= p.stock_minimo THEN 2
+                 ELSE 3
+               END ASC,
+               (p.stock_actual - p.stock_minimo) ASC,
+               p.stock_actual ASC
+             LIMIT 30`
           : `SELECT p.id_producto, p.sku, p.codigo_barras, p.nombre, p.unidad_medida,
                     p.stock_actual, p.stock_minimo, p.precio_venta_final,
+                    (p.stock_actual - p.stock_minimo) AS diferencia_minimo,
+                    CASE
+                      WHEN p.stock_actual <= 0 OR p.stock_actual <= (p.stock_minimo - 7) THEN 'CRITICO'
+                      WHEN p.stock_actual <= p.stock_minimo THEN 'PRECAUCION'
+                      ELSE 'SUGERENCIA'
+                    END AS categoria_aviso,
                     'Sin categoría' AS categoria
              FROM productos p
-             WHERE p.activo = 1 AND p.stock_actual <= p.stock_minimo
-             ORDER BY (p.stock_actual - p.stock_minimo) ASC, p.stock_actual ASC
-             LIMIT 15`
+             WHERE p.activo = 1 AND p.stock_actual <= (p.stock_minimo + 7)
+             ORDER BY
+               CASE
+                 WHEN p.stock_actual <= 0 OR p.stock_actual <= (p.stock_minimo - 7) THEN 1
+                 WHEN p.stock_actual <= p.stock_minimo THEN 2
+                 ELSE 3
+               END ASC,
+               (p.stock_actual - p.stock_minimo) ASC,
+               p.stock_actual ASC
+             LIMIT 30`
       );
     }
 
@@ -751,6 +1110,7 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
       existingTables.has('ventas') &&
       existingTables.has('productos')
     ) {
+      // Solo muestra los 5 productos más vendidos de la tienda
       topSellingProducts = queryAll(
         db,
         `SELECT p.id_producto, p.sku, p.nombre, p.unidad_medida, p.stock_actual, p.precio_venta_final,
@@ -763,13 +1123,17 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
          WHERE v.estado = 'COMPLETADA'
          GROUP BY p.id_producto
          ORDER BY total_vendido DESC, ingresos_generados DESC
-         LIMIT 10`
+         LIMIT 5`
       );
     }
 
     return {
       database: { ...activeFileMeta },
+      periodInfo,
       salesSummary,
+      annualIncomeByMonth,
+      annualTotals,
+      monthComparison,
       lowStockProducts,
       topSellingProducts,
       recentSales,
@@ -1639,35 +2003,7 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
   // ==========================================
   // SECCIÓN VENTAS (POS)
   // ==========================================
-  async function getSalesSectionData(params = {}) {
-    await ensureLoadedInTab();
-    const db = requireActiveDb();
-
-    resolveValidUserId(db);
-
-    const usuarios = queryAll(
-      db,
-      `SELECT id_usuario, nombre, email, rol, activo
-       FROM usuarios
-       WHERE activo = 1
-       ORDER BY id_usuario ASC`
-    );
-
-    const clientes = queryAll(
-      db,
-      `SELECT id_cliente, rut_identificacion, nombre, giro, telefono, email
-       FROM clientes
-       ORDER BY nombre ASC`
-    );
-
-    const categorias = queryAll(
-      db,
-      `SELECT id_categoria, nombre, descripcion, activo
-       FROM categorias
-       WHERE activo = 1
-       ORDER BY nombre ASC`
-    );
-
+  function queryPosProductsCatalogSync(db, params = {}) {
     const cleanTerm = String(params.q ?? params.termino ?? '').trim();
     const likePattern = `%${cleanTerm}%`;
     const rawCat = params.id_categoria ?? params.idCategoria ?? null;
@@ -1682,7 +2018,7 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
       Math.min(200, Number(params.limite_productos ?? params.limiteProductos) || 50)
     );
 
-    const productos = queryAll(
+    return queryAll(
       db,
       `SELECT
          p.id_producto,
@@ -1722,15 +2058,83 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
         limProd,
       ]
     );
+  }
+
+  /**
+   * Búsqueda rápida únicamente del catálogo de productos del POS (evita recalcular historial de ventas,
+   * clientes y usuarios en cada pulsación de tecla del cajero).
+   */
+  async function searchPosProducts(params = {}) {
+    await ensureLoadedInTab();
+    const db = requireActiveDb();
+    return queryPosProductsCatalogSync(db, params);
+  }
+
+  async function getSalesSectionData(params = {}) {
+    await ensureLoadedInTab();
+    const db = requireActiveDb();
+
+    if (params.soloCatalogo) {
+      return {
+        database: { ...activeFileMeta },
+        productos: queryPosProductsCatalogSync(db, params),
+      };
+    }
+
+    resolveValidUserId(db);
+
+    const usuarios = queryAll(
+      db,
+      `SELECT id_usuario, nombre, email, rol, activo
+       FROM usuarios
+       WHERE activo = 1
+       ORDER BY id_usuario ASC`
+    );
+
+    const clientes = queryAll(
+      db,
+      `SELECT id_cliente, rut_identificacion, nombre, giro, telefono, email
+       FROM clientes
+       ORDER BY nombre ASC
+       LIMIT 200`
+    );
+
+    const categorias = queryAll(
+      db,
+      `SELECT id_categoria, nombre, descripcion, activo
+       FROM categorias
+       WHERE activo = 1
+       ORDER BY nombre ASC`
+    );
+
+    const productos = queryPosProductsCatalogSync(db, params);
 
     const limVentas = Math.max(
       1,
       Math.min(100, Number(params.limite_ventas ?? params.limiteVentas) || 25)
     );
 
+    // CTE ultimas_ventas: filtra y limita primero las N ventas más recientes antes de agrupar detalle_ventas y pagos_venta
     const ventasRecientes = queryAll(
       db,
-      `SELECT
+      `WITH ultimas_ventas AS (
+         SELECT
+           v.id_venta,
+           v.id_cliente,
+           v.id_usuario,
+           v.tipo_documento,
+           v.folio_documento,
+           v.fecha_venta,
+           v.subtotal_neto,
+           v.total_iva,
+           v.descuento_global,
+           v.total_venta,
+           v.estado
+         FROM ventas v
+         ORDER BY v.fecha_venta DESC, v.id_venta DESC
+         LIMIT ?
+       )
+       SELECT
          v.id_venta,
          v.id_cliente,
          COALESCE(cl.nombre, 'Cliente General') AS cliente_nombre,
@@ -1748,7 +2152,7 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
          COALESCE(dv_agg.total_items, 0) AS total_items,
          COALESCE(dv_agg.resumen_productos, '') AS resumen_productos,
          COALESCE(pv_agg.metodos_pago, 'SIN REGISTRO') AS metodos_pago
-       FROM ventas v
+       FROM ultimas_ventas v
        LEFT JOIN clientes cl ON cl.id_cliente = v.id_cliente
        LEFT JOIN usuarios u ON u.id_usuario = v.id_usuario
        LEFT JOIN (
@@ -1758,6 +2162,7 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
            GROUP_CONCAT(p.nombre || ' x' || dv.cantidad, ', ') AS resumen_productos
          FROM detalle_ventas dv
          INNER JOIN productos p ON p.id_producto = dv.id_producto
+         WHERE dv.id_venta IN (SELECT id_venta FROM ultimas_ventas)
          GROUP BY dv.id_venta
        ) dv_agg ON dv_agg.id_venta = v.id_venta
        LEFT JOIN (
@@ -1765,10 +2170,10 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
            pv.id_venta,
            GROUP_CONCAT(pv.metodo_pago, ' + ') AS metodos_pago
          FROM pagos_venta pv
+         WHERE pv.id_venta IN (SELECT id_venta FROM ultimas_ventas)
          GROUP BY pv.id_venta
        ) pv_agg ON pv_agg.id_venta = v.id_venta
-       ORDER BY v.fecha_venta DESC, v.id_venta DESC
-       LIMIT ?`,
+       ORDER BY v.fecha_venta DESC, v.id_venta DESC`,
       [limVentas]
     );
 
@@ -2282,6 +2687,7 @@ CREATE INDEX idx_kardex_producto_fecha ON movimientos_inventario(id_producto, fe
     registerStockEntry,
     registerStockLossOrMerma,
     getSalesSectionData,
+    searchPosProducts,
     registerSaleTransaction,
     getClientsAndSuppliersData,
     saveClientRecord,

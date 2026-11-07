@@ -82,7 +82,7 @@
         <div>
           <span class="badge">Resumen Operativo</span>
           <h1>Panel de Inicio</h1>
-          <p class="subtitle-left"> Estado general de ventas, alertas de reposición y rendimiento de productos en tiempo real.</p>
+          <p class="subtitle-left">Ingresos del día, mes actual, acumulado anual, comparativa mensual, avisos de stock clasificados (±7) y Top 5 productos más vendidos.</p>
         </div>
         <button type="button" class="btn btn-refresh" id="refreshBtn">
           Actualizar datos
@@ -93,7 +93,7 @@
       <div class="kpi-grid">
         <article class="kpi-card">
           <div class="kpi-header">
-            <span class="kpi-label">Ventas de Hoy</span>
+            <span class="kpi-label" id="kpiHoyLabel">Ingresos del Día (Hoy)</span>
             <span class="kpi-icon blue">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             </span>
@@ -104,7 +104,7 @@
 
         <article class="kpi-card">
           <div class="kpi-header">
-            <span class="kpi-label">Ventas del Mes</span>
+            <span class="kpi-label" id="kpiMesLabel">Ingresos del Mes</span>
             <span class="kpi-icon emerald">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </span>
@@ -115,7 +115,7 @@
 
         <article class="kpi-card">
           <div class="kpi-header">
-            <span class="kpi-label">Ventas Acumuladas</span>
+            <span class="kpi-label" id="kpiAnioLabel">Ingresos del Año</span>
             <span class="kpi-icon purple">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
             </span>
@@ -126,26 +126,77 @@
 
         <article class="kpi-card">
           <div class="kpi-header">
-            <span class="kpi-label">Alerta de Stock Bajo</span>
+            <span class="kpi-label">Avisos de Stock (±7)</span>
             <span class="kpi-icon amber">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             </span>
           </div>
           <div class="kpi-value" id="kpiStockBajo">0</div>
-          <div class="kpi-meta" id="kpiTotalProductos">De 0 productos activos</div>
+          <div class="kpi-meta" id="kpiTotalProductos">0 crítico · 0 precaución · 0 sugerencia</div>
         </article>
       </div>
 
-      <!-- Paneles Principales: Stock Bajo y Productos Más Vendidos -->
+      <!-- Paneles Financieros: Gráfico de Ingresos del Año y Gráfico Comparativo con el Mes Pasado -->
       <div class="dashboard-panels">
-        <!-- Panel 1: Stock Bajo de Productos -->
+        <!-- Gráfico 1: Ingresos del Año (Curva de Ascenso / Descenso Mensual) -->
         <section class="panel-card">
           <div class="panel-header">
             <div>
-              <h2>Stock Bajo de Productos</h2>
-              <p class="panel-subtitle">Productos con stock actual igual o inferior al stock mínimo definido</p>
+              <h2 id="annualIncomeTitle">Gráfico de Ingresos del Año</h2>
+              <p class="panel-subtitle">Evolución mensual (Ene–Dic) con curva de ascenso o descenso de ingresos y utilidad</p>
             </div>
-            <span class="panel-badge warning" id="lowStockBadge">0 críticos</span>
+            <span class="panel-badge success-badge" id="annualIncomeBadge">$0 anual</span>
+          </div>
+
+          <div id="annualIncomeChartContainer" class="chart-panel-body">
+            <div class="empty-cell">Cargando gráfico de ingresos del año...</div>
+          </div>
+        </section>
+
+        <!-- Gráfico 2: Comparativa de Ventas con el Mes Pasado (Ascenso / Descenso) -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h2 id="monthCompTitle">Gráfico Comparativo: Mes Actual vs. Mes Pasado</h2>
+              <p class="panel-subtitle" id="monthCompSubtitle">Tendencia de ascenso o descenso en ingresos, utilidad, ticket promedio y unidades</p>
+            </div>
+            <span class="panel-badge info" id="monthCompBadge">Mes actual vs. anterior</span>
+          </div>
+
+          <div id="monthCompChartContainer" class="chart-panel-body">
+            <div class="empty-cell">Cargando gráfico comparativo mensual...</div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Paneles Principales: Avisos de Stock por Categoría (±7) y Top 5 Productos Más Vendidos -->
+      <div class="dashboard-panels">
+        <!-- Panel 3: Avisos de Stock Clasificados por Categoría -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h2>Avisos de Stock por Categoría</h2>
+              <p class="panel-subtitle">
+                Clasificación respecto al Stock Mínimo: <strong>Crítico</strong> (7 o más por abajo / agotado), <strong>Precaución</strong> (hasta 7 por abajo) y <strong>Sugerencia</strong> (hasta 7 por arriba)
+              </p>
+            </div>
+            <span class="panel-badge warning" id="lowStockBadge">0 avisos</span>
+          </div>
+
+          <!-- Filtros rápidos por categoría de aviso -->
+          <div class="stock-alert-tabs" id="stockAlertTabs" role="tablist" aria-label="Categorías de aviso de stock">
+            <button type="button" class="stock-tab-btn active" data-alert-filter="ALL" id="tabStockAll">
+              Todos (<span id="countStockAll">0</span>)
+            </button>
+            <button type="button" class="stock-tab-btn danger" data-alert-filter="CRITICO" id="tabStockCritico">
+              Crítico · -7 (<span id="countStockCritico">0</span>)
+            </button>
+            <button type="button" class="stock-tab-btn warning" data-alert-filter="PRECAUCION" id="tabStockPrecaucion">
+              Precaución · Mín (<span id="countStockPrecaucion">0</span>)
+            </button>
+            <button type="button" class="stock-tab-btn info" data-alert-filter="SUGERENCIA" id="tabStockSugerencia">
+              Sugerencia · +7 (<span id="countStockSugerencia">0</span>)
+            </button>
           </div>
 
           <div class="table-responsive">
@@ -155,27 +206,28 @@
                   <th>Producto / SKU</th>
                   <th>Categoría</th>
                   <th class="text-right">Stock Actual</th>
-                  <th class="text-right">Mínimo</th>
-                  <th>Estado</th>
+                  <th class="text-right">Mínimo (±7)</th>
+                  <th class="text-right">Diferencia</th>
+                  <th>Nivel Aviso</th>
                 </tr>
               </thead>
               <tbody id="lowStockTableBody">
                 <tr>
-                  <td colspan="5" class="empty-cell">Cargando productos...</td>
+                  <td colspan="6" class="empty-cell">Cargando avisos de stock...</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </section>
 
-        <!-- Panel 2: Productos Más Vendidos -->
+        <!-- Panel 4: Los 5 Productos Más Vendidos de la Tienda -->
         <section class="panel-card">
           <div class="panel-header">
             <div>
-              <h2>Productos Más Vendidos</h2>
-              <p class="panel-subtitle">Ranking por unidades vendidas e ingresos generados en ventas completadas</p>
+              <h2>Top 5 Productos Más Vendidos</h2>
+              <p class="panel-subtitle">Los 5 productos con mayor volumen de unidades vendidas e ingresos en la tienda</p>
             </div>
-            <span class="panel-badge info" id="topProductsBadge">Top 10</span>
+            <span class="panel-badge info" id="topProductsBadge">Top 5</span>
           </div>
 
           <div class="table-responsive">
@@ -190,7 +242,7 @@
               </thead>
               <tbody id="topProductsTableBody">
                 <tr>
-                  <td colspan="4" class="empty-cell">Cargando ranking...</td>
+                  <td colspan="4" class="empty-cell">Cargando Top 5...</td>
                 </tr>
               </tbody>
             </table>
@@ -457,16 +509,80 @@
         </div>
       </div>
 
-      <!-- Tres Paneles Operativos: 1) Producto Nuevo, 2) Ingreso de Stock, 3) Mermas/Pérdidas -->
-      <div class="stock-actions-grid">
-        <!-- Tarjeta 1: Ingresar Producto Nuevo -->
-        <section class="panel-card">
+      <!-- Selector de Acción: El usuario elige en un botón qué operación desea realizar y se despliega el formulario -->
+      <section class="panel-card stock-launcher-card">
+        <div class="panel-header">
+          <div>
+            <h2>¿Qué operación deseas realizar?</h2>
+            <p class="panel-subtitle">Selecciona un botón para desplegar el formulario correspondiente</p>
+          </div>
+          <span class="panel-badge info" id="stockActiveActionBadge">Selecciona una acción</span>
+        </div>
+
+        <div class="stock-launcher-buttons" id="stockLauncherButtons" role="tablist" aria-label="Operaciones de gestión de stock">
+          <button
+            type="button"
+            class="stock-action-choice-btn choice-info"
+            data-stock-action="new"
+            id="btnActionNewProduct"
+            aria-expanded="false"
+          >
+            <span class="choice-icon info">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </span>
+            <span class="choice-content">
+              <strong>1. Ingresar Producto Nuevo</strong>
+              <small>Crear artículo en catálogo con stock inicial</small>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            class="stock-action-choice-btn choice-success"
+            data-stock-action="entry"
+            id="btnActionStockEntry"
+            aria-expanded="false"
+          >
+            <span class="choice-icon success">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="6" x2="12" y2="18"/></svg>
+            </span>
+            <span class="choice-content">
+              <strong>2. Ingresar Nuevo Stock</strong>
+              <small>Abastecer o sumar unidades a un producto</small>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            class="stock-action-choice-btn choice-danger"
+            data-stock-action="loss"
+            id="btnActionStockLoss"
+            aria-expanded="false"
+          >
+            <span class="choice-icon danger">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="7 13 12 18 17 13"/><line x1="12" y1="18" x2="12" y2="6"/></svg>
+            </span>
+            <span class="choice-content">
+              <strong>3. Ingresar Mermas o Pérdidas</strong>
+              <small>Descontar stock por daño, vencimiento o ajuste</small>
+            </span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Contenedor de Formularios Desplegables -->
+      <div class="stock-collapsible-container" id="stockCollapsibleContainer">
+        <!-- Panel Desplegable 1: Ingresar Producto Nuevo -->
+        <section class="panel-card stock-collapsible-panel hidden" id="panelNewProduct">
           <div class="panel-header">
             <div>
               <h2>1. Ingresar Producto Nuevo</h2>
               <p class="panel-subtitle">Crea un artículo en catálogo y registra su stock inicial mediante Kardex</p>
             </div>
-            <span class="panel-badge info">Catálogo</span>
+            <div class="panel-controls">
+              <span class="panel-badge info">Catálogo</span>
+              <button type="button" class="btn btn-refresh btn-sm" data-close-stock-panel>Cerrar formulario ✕</button>
+            </div>
           </div>
 
           <form id="formNewProduct" class="stock-form">
@@ -557,22 +673,40 @@
           </form>
         </section>
 
-        <!-- Tarjeta 2: Ingresar Stock Nuevo -->
-        <section class="panel-card">
+        <!-- Panel Desplegable 2: Ingresar Stock Nuevo (Con Barra de Búsqueda de Producto) -->
+        <section class="panel-card stock-collapsible-panel hidden" id="panelStockEntry">
           <div class="panel-header">
             <div>
-              <h2>2. Ingresar Stock Nuevo</h2>
-              <p class="panel-subtitle">Suma existencias al inventario insertando en <code>movimientos_inventario</code></p>
+              <h2>2. Ingresar Nuevo Stock</h2>
+              <p class="panel-subtitle">Busca el producto por nombre, SKU o código de barras y suma existencias en <code>movimientos_inventario</code></p>
             </div>
-            <span class="panel-badge success-badge">Entrada (+)</span>
+            <div class="panel-controls">
+              <span class="panel-badge success-badge">Entrada (+)</span>
+              <button type="button" class="btn btn-refresh btn-sm" data-close-stock-panel>Cerrar formulario ✕</button>
+            </div>
           </div>
 
           <form id="formStockEntry" class="stock-form">
             <div class="input-group">
-              <label for="seProducto">Producto a Abastecer *</label>
+              <label for="seProductSearchInput">Buscar Producto para Abastecer (Nombre, SKU o Código de Barras)</label>
+              <div class="search-input-wrap stock-search-bar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input
+                  type="search"
+                  id="seProductSearchInput"
+                  placeholder="Escribe el nombre, SKU o código de barras para filtrar y elegir el producto..."
+                  autocomplete="off"
+                />
+              </div>
+              <div id="seProductSearchResults" class="stock-search-results hidden"></div>
+            </div>
+
+            <div class="input-group">
+              <label for="seProducto">Producto Seleccionado *</label>
               <select id="seProducto" class="filter-select" required>
                 <option value="">Selecciona un producto...</option>
               </select>
+              <div id="seSelectedProductInfo" class="selected-product-pill hidden"></div>
             </div>
 
             <div class="form-row-2">
@@ -614,22 +748,40 @@
           </form>
         </section>
 
-        <!-- Tarjeta 3: Ingresar Mermas o Pérdidas -->
-        <section class="panel-card">
+        <!-- Panel Desplegable 3: Ingresar Mermas o Pérdidas (Con Barra de Búsqueda de Producto) -->
+        <section class="panel-card stock-collapsible-panel hidden" id="panelStockLoss">
           <div class="panel-header">
             <div>
               <h2>3. Ingresar Mermas o Pérdidas</h2>
-              <p class="panel-subtitle">Descuenta existencias por deterioro, vencimiento, pérdida o ajuste negativo</p>
+              <p class="panel-subtitle">Busca el producto por nombre, SKU o código de barras y descuenta existencias por deterioro, vencimiento o pérdida</p>
             </div>
-            <span class="panel-badge danger">Salida (-)</span>
+            <div class="panel-controls">
+              <span class="panel-badge danger">Salida (-)</span>
+              <button type="button" class="btn btn-refresh btn-sm" data-close-stock-panel>Cerrar formulario ✕</button>
+            </div>
           </div>
 
           <form id="formStockLoss" class="stock-form">
             <div class="input-group">
-              <label for="slProducto">Producto Afectado *</label>
+              <label for="slProductSearchInput">Buscar Producto Afectado (Nombre, SKU o Código de Barras)</label>
+              <div class="search-input-wrap stock-search-bar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input
+                  type="search"
+                  id="slProductSearchInput"
+                  placeholder="Escribe el nombre, SKU o código de barras para filtrar y elegir el producto..."
+                  autocomplete="off"
+                />
+              </div>
+              <div id="slProductSearchResults" class="stock-search-results hidden"></div>
+            </div>
+
+            <div class="input-group">
+              <label for="slProducto">Producto Seleccionado *</label>
               <select id="slProducto" class="filter-select" required>
                 <option value="">Selecciona un producto...</option>
               </select>
+              <div id="slSelectedProductInfo" class="selected-product-pill hidden"></div>
             </div>
 
             <div class="form-row-2">

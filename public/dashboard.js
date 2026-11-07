@@ -1,20 +1,41 @@
 const navDbName = document.getElementById('navDbName');
 const refreshBtn = document.getElementById('refreshBtn');
 
+const kpiHoyLabel = document.getElementById('kpiHoyLabel');
 const kpiHoyMonto = document.getElementById('kpiHoyMonto');
 const kpiHoyCantidad = document.getElementById('kpiHoyCantidad');
+const kpiMesLabel = document.getElementById('kpiMesLabel');
 const kpiMesMonto = document.getElementById('kpiMesMonto');
 const kpiMesCantidad = document.getElementById('kpiMesCantidad');
+const kpiAnioLabel = document.getElementById('kpiAnioLabel');
 const kpiTotalMonto = document.getElementById('kpiTotalMonto');
 const kpiUtilidad = document.getElementById('kpiUtilidad');
 const kpiStockBajo = document.getElementById('kpiStockBajo');
 const kpiTotalProductos = document.getElementById('kpiTotalProductos');
 
+const annualIncomeTitle = document.getElementById('annualIncomeTitle');
+const annualIncomeBadge = document.getElementById('annualIncomeBadge');
+const annualIncomeChartContainer = document.getElementById('annualIncomeChartContainer');
+
+const monthCompTitle = document.getElementById('monthCompTitle');
+const monthCompSubtitle = document.getElementById('monthCompSubtitle');
+const monthCompBadge = document.getElementById('monthCompBadge');
+const monthCompChartContainer = document.getElementById('monthCompChartContainer');
+
 const lowStockBadge = document.getElementById('lowStockBadge');
 const lowStockTableBody = document.getElementById('lowStockTableBody');
+const countStockAll = document.getElementById('countStockAll');
+const countStockCritico = document.getElementById('countStockCritico');
+const countStockPrecaucion = document.getElementById('countStockPrecaucion');
+const countStockSugerencia = document.getElementById('countStockSugerencia');
+const stockTabButtons = document.querySelectorAll('.stock-tab-btn');
+
 const topProductsBadge = document.getElementById('topProductsBadge');
 const topProductsTableBody = document.getElementById('topProductsTableBody');
 const recentSalesTableBody = document.getElementById('recentSalesTableBody');
+
+let cachedDashboardStockAlerts = [];
+let activeStockAlertFilter = 'ALL';
 
 const sectionInicio = document.getElementById('section-inicio');
 const sectionInventario = document.getElementById('section-inventario');
@@ -76,23 +97,541 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-function renderLowStock(products) {
-  lowStockBadge.textContent = `${products.length} alerta(s)`;
-  if (!products.length) {
+function formatCompactCurrency(val) {
+  const num = Number(val) || 0;
+  if (Math.abs(num) >= 1000000) {
+    return `$${(num / 1000000).toFixed(1)}M`;
+  }
+  if (Math.abs(num) >= 1000) {
+    return `$${Math.round(num / 1000)}k`;
+  }
+  return `$${Math.round(num)}`;
+}
+
+function getTrendMeta(actualVal, prevVal) {
+  const act = Number(actualVal) || 0;
+  const prev = Number(prevVal) || 0;
+  const diff = act - prev;
+
+  if (prev === 0 && act === 0) {
+    return {
+      direction: 'flat',
+      label: 'Sin variación',
+      shortLabel: '0%',
+      pct: 0,
+      diff: 0,
+      colorClass: 'neutral',
+      strokeColor: '#94a3b8',
+      arrow: '→',
+    };
+  }
+  if (prev === 0 && act > 0) {
+    return {
+      direction: 'up',
+      label: 'En Ascenso',
+      shortLabel: '+100%',
+      pct: 100,
+      diff,
+      colorClass: 'up',
+      strokeColor: '#10b981',
+      arrow: '▲',
+    };
+  }
+
+  const pct = ((act - prev) / Math.abs(prev)) * 100;
+  if (diff > 0) {
+    return {
+      direction: 'up',
+      label: 'En Ascenso',
+      shortLabel: `+${pct.toFixed(1)}%`,
+      pct,
+      diff,
+      colorClass: 'up',
+      strokeColor: '#10b981',
+      arrow: '▲',
+    };
+  }
+  if (diff < 0) {
+    return {
+      direction: 'down',
+      label: 'En Descenso',
+      shortLabel: `${pct.toFixed(1)}%`,
+      pct,
+      diff,
+      colorClass: 'down',
+      strokeColor: '#ef4444',
+      arrow: '▼',
+    };
+  }
+  return {
+    direction: 'flat',
+    label: 'Estable',
+    shortLabel: '0.0%',
+    pct: 0,
+    diff: 0,
+    colorClass: 'neutral',
+    strokeColor: '#94a3b8',
+    arrow: '→',
+  };
+}
+
+function renderAnnualIncomeTable(months = [], totals = {}, periodInfo = {}) {
+  const anio = periodInfo.anioActual || totals.anio || new Date().getFullYear();
+  if (annualIncomeTitle) {
+    annualIncomeTitle.textContent = `Gráfico de Ingresos del Año (${anio})`;
+  }
+  if (annualIncomeBadge) {
+    annualIncomeBadge.textContent = `${formatCurrency(totals.total_venta || 0)} en ${anio}`;
+  }
+
+  if (!annualIncomeChartContainer) return;
+
+  if (!months.length) {
+    annualIncomeChartContainer.innerHTML = `
+      <div class="empty-cell">No hay datos de ingresos anuales disponibles.</div>
+    `;
+    return;
+  }
+
+  const currentIdx = months.findIndex((m) => m.es_mes_actual);
+  const activeIdx = currentIdx >= 0 ? currentIdx : months.length - 1;
+  const currentMonthObj = months[activeIdx] || { mes_nombre: 'Actual', total_venta: 0 };
+  const prevMonthObj = activeIdx > 0 ? months[activeIdx - 1] : { mes_nombre: 'Anterior', total_venta: 0 };
+  const annualTrend = getTrendMeta(currentMonthObj.total_venta, prevMonthObj.total_venta);
+
+  const maxVenta = Math.max(...months.map((m) => Number(m.total_venta) || 0), 1);
+  const mejorMes = months.reduce(
+    (best, m) => ((Number(m.total_venta) || 0) > (Number(best.total_venta) || 0) ? m : best),
+    months[0]
+  );
+
+  // Dimensiones del gráfico SVG
+  const svgW = 640;
+  const svgH = 230;
+  const padL = 48;
+  const padR = 20;
+  const padT = 28;
+  const padB = 38;
+  const plotW = svgW - padL - padR;
+  const plotH = svgH - padT - padB;
+  const stepX = plotW / months.length;
+
+  const points = months.map((m, idx) => {
+    const val = Number(m.total_venta) || 0;
+    const util = Number(m.utilidad_estimada) || 0;
+    const x = padL + stepX * idx + stepX / 2;
+    const ratio = maxVenta > 0 ? val / maxVenta : 0;
+    const y = padT + plotH - ratio * plotH;
+    const barH = Math.max(ratio * plotH, val > 0 ? 4 : 1);
+    const barY = padT + plotH - barH;
+
+    const prevVal = idx > 0 ? Number(months[idx - 1].total_venta) || 0 : val;
+    const stepTrend = idx === 0 ? 'flat' : val > prevVal ? 'up' : val < prevVal ? 'down' : 'flat';
+
+    return {
+      ...m,
+      idx,
+      val,
+      util,
+      x,
+      y,
+      barH,
+      barY,
+      stepTrend,
+      shortName: String(m.mes_nombre || '').slice(0, 3),
+    };
+  });
+
+  // Polilínea de tendencia hasta el último mes con movimiento o mes actual
+  const lastLineIdx = Math.max(
+    activeIdx,
+    points.reduce((acc, p, i) => (p.val > 0 ? i : acc), 0)
+  );
+  const linePoints = points.slice(0, lastLineIdx + 1);
+  const polylineCoords = linePoints.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const areaCoords =
+    linePoints.length > 1
+      ? `${linePoints[0].x.toFixed(1)},${(padT + plotH).toFixed(1)} ${polylineCoords} ${linePoints[
+          linePoints.length - 1
+        ].x.toFixed(1)},${(padT + plotH).toFixed(1)}`
+      : '';
+
+  // Líneas guía horizontales
+  const gridLevels = [0, 0.5, 1];
+  const gridSvg = gridLevels
+    .map((lvl) => {
+      const gy = padT + plotH - lvl * plotH;
+      const labelVal = formatCompactCurrency(lvl * maxVenta);
+      return `
+        <line x1="${padL}" y1="${gy.toFixed(1)}" x2="${svgW - padR}" y2="${gy.toFixed(1)}" stroke="rgba(148, 163, 184, 0.16)" stroke-dasharray="3 3" />
+        <text x="${padL - 6}" y="${(gy + 4).toFixed(1)}" text-anchor="end" fill="#94a3b8" font-size="10" font-family="monospace">${escapeHtml(labelVal)}</text>
+      `;
+    })
+    .join('');
+
+  // Segmentos coloreados según ascenso (verde) o descenso (rojo) entre cada mes
+  const segmentsSvg = linePoints
+    .slice(1)
+    .map((curr, i) => {
+      const prev = linePoints[i];
+      const segColor =
+        curr.val > prev.val ? '#10b981' : curr.val < prev.val ? '#ef4444' : '#60a5fa';
+      return `<line x1="${prev.x.toFixed(1)}" y1="${prev.y.toFixed(1)}" x2="${curr.x.toFixed(1)}" y2="${curr.y.toFixed(1)}" stroke="${segColor}" stroke-width="2.8" stroke-linecap="round" />`;
+    })
+    .join('');
+
+  // Barras y nodos de cada mes
+  const barsAndNodesSvg = points
+    .map((p) => {
+      const barWidth = Math.min(26, stepX * 0.58);
+      const bx = p.x - barWidth / 2;
+      const barFill = p.es_mes_actual
+        ? 'rgba(59, 130, 246, 0.45)'
+        : p.stepTrend === 'up'
+        ? 'rgba(16, 185, 129, 0.28)'
+        : p.stepTrend === 'down'
+        ? 'rgba(239, 68, 68, 0.25)'
+        : 'rgba(148, 163, 184, 0.18)';
+      const barStroke = p.es_mes_actual
+        ? '#60a5fa'
+        : p.stepTrend === 'up'
+        ? '#10b981'
+        : p.stepTrend === 'down'
+        ? '#ef4444'
+        : '#475569';
+
+      const nodeColor =
+        p.stepTrend === 'up' ? '#10b981' : p.stepTrend === 'down' ? '#ef4444' : '#60a5fa';
+      const showNode = p.idx <= lastLineIdx;
+      const arrowGlyph =
+        p.idx > 0 && p.idx <= lastLineIdx && (p.val > 0 || points[p.idx - 1].val > 0)
+          ? p.stepTrend === 'up'
+            ? '▲'
+            : p.stepTrend === 'down'
+            ? '▼'
+            : ''
+          : '';
+
+      return `
+        <g class="chart-month-group">
+          <title>${escapeHtml(p.mes_nombre)} ${escapeHtml(anio)}: ${formatCurrency(p.val)} (${p.cantidad_ventas} ventas · Utilidad: ${formatCurrency(p.util)})</title>
+          <rect x="${bx.toFixed(1)}" y="${p.barY.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${p.barH.toFixed(1)}" rx="4" fill="${barFill}" stroke="${barStroke}" stroke-width="1" />
+          ${
+            showNode
+              ? `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.es_mes_actual ? 5 : 3.8}" fill="${nodeColor}" stroke="#0f172a" stroke-width="1.5" />`
+              : ''
+          }
+          ${
+            arrowGlyph
+              ? `<text x="${p.x.toFixed(1)}" y="${Math.max(12, p.y - 8).toFixed(1)}" text-anchor="middle" fill="${nodeColor}" font-size="9" font-weight="700">${arrowGlyph}</text>`
+              : ''
+          }
+          <text x="${p.x.toFixed(1)}" y="${svgH - 18}" text-anchor="middle" fill="${p.es_mes_actual ? '#60a5fa' : '#cbd5e1'}" font-size="10.5" font-weight="${p.es_mes_actual ? '700' : '500'}">${escapeHtml(p.shortName)}</text>
+          <text x="${p.x.toFixed(1)}" y="${svgH - 5}" text-anchor="middle" fill="#64748b" font-size="9" font-family="monospace">${p.val > 0 ? escapeHtml(formatCompactCurrency(p.val)) : '$0'}</text>
+        </g>
+      `;
+    })
+    .join('');
+
+  annualIncomeChartContainer.innerHTML = `
+    <div class="trend-banner ${annualTrend.colorClass}">
+      <div class="trend-banner-main">
+        <span class="trend-direction-pill ${annualTrend.colorClass}">
+          ${annualTrend.arrow} ${escapeHtml(annualTrend.label)} (${escapeHtml(annualTrend.shortLabel)})
+        </span>
+        <span class="trend-banner-text">
+          <strong>${escapeHtml(currentMonthObj.mes_nombre)}:</strong> ${formatCurrency(currentMonthObj.total_venta)}
+          vs. <strong>${escapeHtml(prevMonthObj.mes_nombre)}:</strong> ${formatCurrency(prevMonthObj.total_venta)}
+        </span>
+      </div>
+      <div class="trend-legend">
+        <span class="legend-item"><i class="legend-dot up"></i> Ascenso (▲)</span>
+        <span class="legend-item"><i class="legend-dot down"></i> Descenso (▼)</span>
+        <span class="legend-item"><i class="legend-dot current"></i> Mes Actual</span>
+      </div>
+    </div>
+
+    <div class="svg-chart-wrapper">
+      <svg viewBox="0 0 ${svgW} ${svgH}" class="comparison-svg-chart" role="img" aria-label="Gráfico de evolución anual de ingresos">
+        <defs>
+          <linearGradient id="annualAreaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${annualTrend.strokeColor}" stop-opacity="0.26" />
+            <stop offset="100%" stop-color="${annualTrend.strokeColor}" stop-opacity="0.0" />
+          </linearGradient>
+        </defs>
+        ${gridSvg}
+        ${areaCoords ? `<polygon points="${areaCoords}" fill="url(#annualAreaGrad)" />` : ''}
+        ${segmentsSvg}
+        ${barsAndNodesSvg}
+      </svg>
+    </div>
+
+    <div class="chart-summary-strip">
+      <div class="chart-summary-item">
+        <span class="chart-summary-label">Total Ingresos ${escapeHtml(anio)}</span>
+        <strong class="chart-summary-value text-emerald font-mono">${formatCurrency(totals.total_venta || 0)}</strong>
+      </div>
+      <div class="chart-summary-item">
+        <span class="chart-summary-label">Utilidad Est. ${escapeHtml(anio)}</span>
+        <strong class="chart-summary-value font-mono">${formatCurrency(totals.utilidad_estimada || 0)}</strong>
+      </div>
+      <div class="chart-summary-item">
+        <span class="chart-summary-label">Ventas Completadas</span>
+        <strong class="chart-summary-value font-mono">${totals.cantidad_ventas || 0} doc(s)</strong>
+      </div>
+      <div class="chart-summary-item">
+        <span class="chart-summary-label">Mejor Mes (${escapeHtml(mejorMes?.mes_nombre || '—')})</span>
+        <strong class="chart-summary-value font-mono">${formatCurrency(mejorMes?.total_venta || 0)}</strong>
+      </div>
+    </div>
+  `;
+}
+
+function renderMonthComparisonTable(comp = {}) {
+  const mesActualLabel = comp.mesActualLabel || 'Mes Actual';
+  const mesPasadoLabel = comp.mesPasadoLabel || 'Mes Pasado';
+  const mesActualNombre = comp.mesActualNombre || 'Mes Actual';
+  const mesPasadoNombre = comp.mesPasadoNombre || 'Mes Pasado';
+  const act = comp.actual || {};
+  const pas = comp.pasado || {};
+
+  if (monthCompTitle) {
+    monthCompTitle.textContent = `Gráfico Comparativo: ${mesActualNombre} vs. ${mesPasadoNombre}`;
+  }
+  if (monthCompSubtitle) {
+    monthCompSubtitle.textContent = `Curva de ascenso o descenso entre ${mesPasadoLabel} y ${mesActualLabel}`;
+  }
+
+  const mainTrend = getTrendMeta(act.total_venta || 0, pas.total_venta || 0);
+  if (monthCompBadge) {
+    monthCompBadge.textContent = `${mainTrend.arrow} ${mainTrend.label} (${mainTrend.shortLabel})`;
+    monthCompBadge.className =
+      mainTrend.direction === 'up'
+        ? 'panel-badge success-badge'
+        : mainTrend.direction === 'down'
+        ? 'panel-badge danger'
+        : 'panel-badge info';
+  }
+
+  if (!monthCompChartContainer) return;
+
+  // Mini gráfico SVG de pendiente (Slope Chart) para Ingresos Totales y Utilidad
+  const maxMain = Math.max(
+    Number(pas.total_venta) || 0,
+    Number(act.total_venta) || 0,
+    1
+  );
+  const slopeW = 560;
+  const slopeH = 128;
+  const xLeft = 135;
+  const xRight = slopeW - 135;
+  const yTop = 24;
+  const yBot = slopeH - 28;
+  const plotSlopeH = yBot - yTop;
+
+  const yPasVenta = yBot - ((Number(pas.total_venta) || 0) / maxMain) * plotSlopeH;
+  const yActVenta = yBot - ((Number(act.total_venta) || 0) / maxMain) * plotSlopeH;
+
+  const yPasUtil = yBot - (Math.max(0, Number(pas.utilidad_estimada) || 0) / maxMain) * plotSlopeH;
+  const yActUtil = yBot - (Math.max(0, Number(act.utilidad_estimada) || 0) / maxMain) * plotSlopeH;
+
+  const diffSign = mainTrend.diff > 0 ? '+' : '';
+
+  const metrics = [
+    {
+      label: 'Ingresos Totales (Bruto)',
+      pasado: Number(pas.total_venta) || 0,
+      actual: Number(act.total_venta) || 0,
+      format: formatCurrency,
+    },
+    {
+      label: 'Ventas Netas (Sin IVA)',
+      pasado: Number(pas.subtotal_neto) || 0,
+      actual: Number(act.subtotal_neto) || 0,
+      format: formatCurrency,
+    },
+    {
+      label: 'Utilidad Estimada (Histórica)',
+      pasado: Number(pas.utilidad_estimada) || 0,
+      actual: Number(act.utilidad_estimada) || 0,
+      format: formatCurrency,
+    },
+    {
+      label: 'Ticket Promedio',
+      pasado: Number(pas.ticket_promedio) || 0,
+      actual: Number(act.ticket_promedio) || 0,
+      format: formatCurrency,
+    },
+    {
+      label: 'Cantidad de Ventas (Docs)',
+      pasado: Number(pas.cantidad_ventas) || 0,
+      actual: Number(act.cantidad_ventas) || 0,
+      format: (v) => `${Math.round(Number(v) || 0)} vta(s)`,
+    },
+    {
+      label: 'Unidades Vendidas',
+      pasado: Number(pas.unidades_vendidas) || 0,
+      actual: Number(act.unidades_vendidas) || 0,
+      format: (v) => `${formatNumber(v)} unid.`,
+    },
+  ];
+
+  const barsHtml = metrics
+    .map((m) => {
+      const t = getTrendMeta(m.actual, m.pasado);
+      const maxVal = Math.max(Math.abs(m.pasado), Math.abs(m.actual), 1);
+      const pasPct = Math.min(100, Math.max(4, (Math.abs(m.pasado) / maxVal) * 100));
+      const actPct = Math.min(100, Math.max(4, (Math.abs(m.actual) / maxVal) * 100));
+      const dSign = t.diff > 0 ? '+' : '';
+      const diffFormatted = m.format(t.diff);
+
+      return `
+        <div class="comp-metric-card">
+          <div class="comp-metric-header">
+            <span class="comp-metric-title">${escapeHtml(m.label)}</span>
+            <span class="trend-direction-pill sm ${t.colorClass}">
+              ${t.arrow} ${escapeHtml(t.label)} (${escapeHtml(t.shortLabel)} · ${dSign}${escapeHtml(diffFormatted)})
+            </span>
+          </div>
+          <div class="comp-bars-pair">
+            <div class="comp-bar-row">
+              <span class="comp-bar-period">${escapeHtml(mesPasadoNombre)}</span>
+              <div class="comp-bar-track">
+                <div class="comp-bar-fill prev" style="width: ${m.pasado > 0 ? pasPct.toFixed(1) : 0}%"></div>
+              </div>
+              <span class="comp-bar-amount font-mono">${escapeHtml(m.format(m.pasado))}</span>
+            </div>
+            <div class="comp-bar-row">
+              <span class="comp-bar-period current">${escapeHtml(mesActualNombre)}</span>
+              <div class="comp-bar-track">
+                <div class="comp-bar-fill ${t.colorClass}" style="width: ${m.actual > 0 ? actPct.toFixed(1) : 0}%"></div>
+              </div>
+              <span class="comp-bar-amount font-mono current">${escapeHtml(m.format(m.actual))}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+
+  monthCompChartContainer.innerHTML = `
+    <div class="trend-banner ${mainTrend.colorClass}">
+      <div class="trend-banner-main">
+        <span class="trend-direction-pill ${mainTrend.colorClass}">
+          ${mainTrend.arrow} Ingresos ${escapeHtml(mainTrend.label)} (${escapeHtml(mainTrend.shortLabel)})
+        </span>
+        <span class="trend-banner-text">
+          Diferencia vs. ${escapeHtml(mesPasadoNombre)}:
+          <strong class="font-mono">${diffSign}${formatCurrency(mainTrend.diff)}</strong>
+        </span>
+      </div>
+    </div>
+
+    <div class="svg-chart-wrapper slope-chart-wrapper">
+      <svg viewBox="0 0 ${slopeW} ${slopeH}" class="comparison-svg-chart" role="img" aria-label="Curva de ascenso o descenso entre mes pasado y mes actual">
+        <line x1="${xLeft}" y1="${yTop}" x2="${xLeft}" y2="${yBot}" stroke="rgba(148, 163, 184, 0.25)" stroke-dasharray="3 3" />
+        <line x1="${xRight}" y1="${yTop}" x2="${xRight}" y2="${yBot}" stroke="rgba(148, 163, 184, 0.25)" stroke-dasharray="3 3" />
+
+        <!-- Línea de Utilidad Estimada -->
+        <line x1="${xLeft}" y1="${yPasUtil.toFixed(1)}" x2="${xRight}" y2="${yActUtil.toFixed(1)}" stroke="#a855f7" stroke-width="2" stroke-dasharray="4 3" />
+        <circle cx="${xLeft}" cy="${yPasUtil.toFixed(1)}" r="4" fill="#a855f7" />
+        <circle cx="${xRight}" cy="${yActUtil.toFixed(1)}" r="4" fill="#a855f7" />
+
+        <!-- Línea principal de Ingresos (Ascenso / Descenso) -->
+        <line x1="${xLeft}" y1="${yPasVenta.toFixed(1)}" x2="${xRight}" y2="${yActVenta.toFixed(1)}" stroke="${mainTrend.strokeColor}" stroke-width="3.5" stroke-linecap="round" />
+        <circle cx="${xLeft}" cy="${yPasVenta.toFixed(1)}" r="5.5" fill="#94a3b8" stroke="#0f172a" stroke-width="1.5" />
+        <circle cx="${xRight}" cy="${yActVenta.toFixed(1)}" r="6.5" fill="${mainTrend.strokeColor}" stroke="#0f172a" stroke-width="1.5" />
+
+        <!-- Etiquetas Izquierda (Mes Pasado) -->
+        <text x="${xLeft - 12}" y="${yPasVenta.toFixed(1)}" text-anchor="end" fill="#e2e8f0" font-size="11" font-weight="700" font-family="monospace">${escapeHtml(formatCurrency(pas.total_venta || 0))}</text>
+        <text x="${xLeft}" y="${slopeH - 7}" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600">${escapeHtml(mesPasadoLabel)}</text>
+
+        <!-- Etiqueta central de pendiente -->
+        <text x="${(xLeft + xRight) / 2}" y="${((yPasVenta + yActVenta) / 2 - 10).toFixed(1)}" text-anchor="middle" fill="${mainTrend.strokeColor}" font-size="11.5" font-weight="700">
+          ${mainTrend.arrow} ${escapeHtml(mainTrend.label)} (${escapeHtml(mainTrend.shortLabel)})
+        </text>
+
+        <!-- Etiquetas Derecha (Mes Actual) -->
+        <text x="${xRight + 12}" y="${yActVenta.toFixed(1)}" text-anchor="start" fill="${mainTrend.strokeColor}" font-size="11.5" font-weight="700" font-family="monospace">${escapeHtml(formatCurrency(act.total_venta || 0))}</text>
+        <text x="${xRight}" y="${slopeH - 7}" text-anchor="middle" fill="#60a5fa" font-size="11" font-weight="700">${escapeHtml(mesActualLabel)}</text>
+      </svg>
+    </div>
+
+    <div class="comp-metrics-grid">
+      ${barsHtml}
+    </div>
+  `;
+}
+
+function renderLowStock(products = [], summary = {}) {
+  cachedDashboardStockAlerts = Array.isArray(products) ? products : [];
+
+  const criticoCount =
+    summary.stockCriticoCount ??
+    cachedDashboardStockAlerts.filter((p) => p.categoria_aviso === 'CRITICO').length;
+  const precaucionCount =
+    summary.stockPrecaucionCount ??
+    cachedDashboardStockAlerts.filter((p) => p.categoria_aviso === 'PRECAUCION').length;
+  const sugerenciaCount =
+    summary.stockSugerenciaCount ??
+    cachedDashboardStockAlerts.filter((p) => p.categoria_aviso === 'SUGERENCIA').length;
+  const totalAvisos = criticoCount + precaucionCount + sugerenciaCount;
+
+  if (countStockAll) countStockAll.textContent = String(cachedDashboardStockAlerts.length);
+  if (countStockCritico) countStockCritico.textContent = String(criticoCount);
+  if (countStockPrecaucion) countStockPrecaucion.textContent = String(precaucionCount);
+  if (countStockSugerencia) countStockSugerencia.textContent = String(sugerenciaCount);
+
+  lowStockBadge.textContent = `${totalAvisos} aviso(s): ${criticoCount} crít. · ${precaucionCount} prec. · ${sugerenciaCount} sug.`;
+  lowStockBadge.className =
+    criticoCount > 0
+      ? 'panel-badge danger'
+      : precaucionCount > 0
+      ? 'panel-badge warning'
+      : 'panel-badge info';
+
+  const filtered =
+    activeStockAlertFilter === 'ALL'
+      ? cachedDashboardStockAlerts
+      : cachedDashboardStockAlerts.filter((p) => p.categoria_aviso === activeStockAlertFilter);
+
+  if (!filtered.length) {
+    const emptyMsg =
+      activeStockAlertFilter === 'ALL'
+        ? 'No hay productos en rango de aviso de stock (Crítico, Precaución o Sugerencia).'
+        : `No hay productos en la categoría "${activeStockAlertFilter}" en este momento.`;
     lowStockTableBody.innerHTML = `
       <tr>
-        <td colspan="5" class="empty-cell">No hay productos con stock bajo en este momento.</td>
+        <td colspan="6" class="empty-cell">${escapeHtml(emptyMsg)}</td>
       </tr>
     `;
     return;
   }
 
-  lowStockTableBody.innerHTML = products
+  lowStockTableBody.innerHTML = filtered
     .map((p) => {
-      const sinStock = Number(p.stock_actual) <= 0;
-      const statusBadge = sinStock
-        ? '<span class="status-tag danger">Sin Stock</span>'
-        : '<span class="status-tag warning">Bajo Mínimo</span>';
+      const stockActual = Number(p.stock_actual) || 0;
+      const stockMinimo = Number(p.stock_minimo) || 0;
+      const diff = stockActual - stockMinimo;
+      const diffSign = diff > 0 ? '+' : '';
+      const pisoCritico = Math.max(0, stockMinimo - 7);
+      const techoSugerencia = stockMinimo + 7;
+
+      let statusBadge = '';
+      let diffClass = '';
+      if (p.categoria_aviso === 'CRITICO') {
+        statusBadge =
+          stockActual <= 0
+            ? '<span class="status-tag danger">Crítico (Agotado)</span>'
+            : '<span class="status-tag danger">Crítico (-7 mín.)</span>';
+        diffClass = 'text-danger';
+      } else if (p.categoria_aviso === 'PRECAUCION') {
+        statusBadge = '<span class="status-tag warning">Precaución (Bajo/En mín.)</span>';
+        diffClass = 'text-amber';
+      } else {
+        statusBadge = '<span class="status-tag info">Sugerencia (+7 mín.)</span>';
+        diffClass = 'text-emerald';
+      }
 
       return `
         <tr>
@@ -101,8 +640,12 @@ function renderLowStock(products) {
             <div class="cell-secondary">${escapeHtml(p.sku || p.codigo_barras || `ID #${p.id_producto}`)}</div>
           </td>
           <td>${escapeHtml(p.categoria)}</td>
-          <td class="text-right font-mono">${formatNumber(p.stock_actual)} ${escapeHtml(p.unidad_medida)}</td>
-          <td class="text-right font-mono">${formatNumber(p.stock_minimo)} ${escapeHtml(p.unidad_medida)}</td>
+          <td class="text-right font-mono"><strong>${formatNumber(stockActual)}</strong> ${escapeHtml(p.unidad_medida)}</td>
+          <td class="text-right font-mono">
+            <div>${formatNumber(stockMinimo)} ${escapeHtml(p.unidad_medida)}</div>
+            <div class="cell-secondary">Rango: ${formatNumber(pisoCritico)} a ${formatNumber(techoSugerencia)}</div>
+          </td>
+          <td class="text-right font-mono ${diffClass}">${diffSign}${formatNumber(diff)} ${escapeHtml(p.unidad_medida)}</td>
           <td>${statusBadge}</td>
         </tr>
       `;
@@ -110,18 +653,27 @@ function renderLowStock(products) {
     .join('');
 }
 
-function renderTopSelling(products) {
-  topProductsBadge.textContent = `${products.length} producto(s)`;
-  if (!products.length) {
+stockTabButtons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    activeStockAlertFilter = btn.dataset.alertFilter || 'ALL';
+    stockTabButtons.forEach((b) => b.classList.toggle('active', b === btn));
+    renderLowStock(cachedDashboardStockAlerts);
+  });
+});
+
+function renderTopSelling(products = []) {
+  const topFive = products.slice(0, 5);
+  topProductsBadge.textContent = `Top ${topFive.length} de 5`;
+  if (!topFive.length) {
     topProductsTableBody.innerHTML = `
       <tr>
-        <td colspan="4" class="empty-cell">Aún no se registran ventas completadas para calcular el ranking.</td>
+        <td colspan="4" class="empty-cell">Aún no se registran ventas completadas para mostrar los 5 productos más vendidos.</td>
       </tr>
     `;
     return;
   }
 
-  topProductsTableBody.innerHTML = products
+  topProductsTableBody.innerHTML = topFive
     .map(
       (p, idx) => `
         <tr>
@@ -182,20 +734,39 @@ async function loadDashboard() {
     const data = await window.LocalSqliteEngine.getDashboardData();
     updateNavDbLabel(data.database);
 
-    const s = data.salesSummary;
+    const s = data.salesSummary || {};
+    const p = data.periodInfo || {};
+
+    if (kpiHoyLabel) {
+      kpiHoyLabel.textContent = p.hoyLabel
+        ? `Ingresos del Día (${p.hoyLabel})`
+        : 'Ingresos del Día (Hoy)';
+    }
     kpiHoyMonto.textContent = formatCurrency(s.hoyMonto);
     kpiHoyCantidad.textContent = `${s.hoyCantidad} venta(s) completada(s) hoy`;
 
+    if (kpiMesLabel) {
+      kpiMesLabel.textContent = p.mesActualLabel
+        ? `Ingresos de ${p.mesActualLabel}`
+        : 'Ingresos del Mes';
+    }
     kpiMesMonto.textContent = formatCurrency(s.mesMonto);
-    kpiMesCantidad.textContent = `${s.mesCantidad} documento(s) este mes`;
+    kpiMesCantidad.textContent = `${s.mesCantidad} documento(s) en ${p.mesActualNombre || 'este mes'} (${p.mesPasadoNombre || 'mes ant.'}: ${formatCurrency(s.mesPasadoMonto)})`;
 
-    kpiTotalMonto.textContent = formatCurrency(s.totalMonto);
-    kpiUtilidad.textContent = `Utilidad est.: ${formatCurrency(s.utilidadEstimada)} (${s.totalCantidad} ventas)`;
+    if (kpiAnioLabel) {
+      kpiAnioLabel.textContent = p.anioActual
+        ? `Ingresos del Año ${p.anioActual}`
+        : 'Ingresos del Año';
+    }
+    kpiTotalMonto.textContent = formatCurrency(s.anioMonto ?? s.totalMonto);
+    kpiUtilidad.textContent = `Utilidad ${p.anioActual || 'anual'}: ${formatCurrency(s.anioUtilidad ?? s.utilidadEstimada)} (${s.anioCantidad ?? s.totalCantidad} ventas)`;
 
-    kpiStockBajo.textContent = s.totalStockBajo;
-    kpiTotalProductos.textContent = `De ${s.totalProductosActivos} producto(s) activo(s)`;
+    kpiStockBajo.textContent = s.stockTotalAvisos ?? s.totalStockBajo;
+    kpiTotalProductos.textContent = `${s.stockCriticoCount || 0} crítico · ${s.stockPrecaucionCount || 0} precaución · ${s.stockSugerenciaCount || 0} sugerencia (de ${s.totalProductosActivos} activos)`;
 
-    renderLowStock(data.lowStockProducts || []);
+    renderAnnualIncomeTable(data.annualIncomeByMonth || [], data.annualTotals || {}, p);
+    renderMonthComparisonTable(data.monthComparison || {});
+    renderLowStock(data.lowStockProducts || [], s);
     renderTopSelling(data.topSellingProducts || []);
     renderRecentSales(data.recentSales || []);
   } catch (err) {
@@ -515,6 +1086,13 @@ refreshInventoryBtn.addEventListener('click', loadInventorySection);
 const stockActiveUser = document.getElementById('stockActiveUser');
 const refreshStockMgmtBtn = document.getElementById('refreshStockMgmtBtn');
 
+const stockActiveActionBadge = document.getElementById('stockActiveActionBadge');
+const stockActionChoiceBtns = document.querySelectorAll('[data-stock-action]');
+const closeStockPanelBtns = document.querySelectorAll('[data-close-stock-panel]');
+const panelNewProduct = document.getElementById('panelNewProduct');
+const panelStockEntry = document.getElementById('panelStockEntry');
+const panelStockLoss = document.getElementById('panelStockLoss');
+
 const formNewProduct = document.getElementById('formNewProduct');
 const npNombre = document.getElementById('npNombre');
 const npUnidad = document.getElementById('npUnidad');
@@ -533,6 +1111,9 @@ const npFeedback = document.getElementById('npFeedback');
 const npSubmitBtn = document.getElementById('npSubmitBtn');
 
 const formStockEntry = document.getElementById('formStockEntry');
+const seProductSearchInput = document.getElementById('seProductSearchInput');
+const seProductSearchResults = document.getElementById('seProductSearchResults');
+const seSelectedProductInfo = document.getElementById('seSelectedProductInfo');
 const seProducto = document.getElementById('seProducto');
 const seTipo = document.getElementById('seTipo');
 const seCantidad = document.getElementById('seCantidad');
@@ -543,6 +1124,9 @@ const seFeedback = document.getElementById('seFeedback');
 const seSubmitBtn = document.getElementById('seSubmitBtn');
 
 const formStockLoss = document.getElementById('formStockLoss');
+const slProductSearchInput = document.getElementById('slProductSearchInput');
+const slProductSearchResults = document.getElementById('slProductSearchResults');
+const slSelectedProductInfo = document.getElementById('slSelectedProductInfo');
 const slProducto = document.getElementById('slProducto');
 const slTipo = document.getElementById('slTipo');
 const slCantidad = document.getElementById('slCantidad');
@@ -557,6 +1141,67 @@ const kardexCountBadge = document.getElementById('kardexCountBadge');
 const kardexTableBody = document.getElementById('kardexTableBody');
 
 let cachedStockProducts = [];
+let activeStockAction = null;
+
+function setActiveStockActionPanel(action) {
+  const nextAction = activeStockAction === action ? null : action;
+  activeStockAction = nextAction;
+
+  const panelsMap = {
+    new: panelNewProduct,
+    entry: panelStockEntry,
+    loss: panelStockLoss,
+  };
+
+  const labelsMap = {
+    new: { text: 'Formulario: Producto Nuevo', cls: 'panel-badge info' },
+    entry: { text: 'Formulario: Ingresar Nuevo Stock', cls: 'panel-badge success-badge' },
+    loss: { text: 'Formulario: Ingresar Mermas / Pérdidas', cls: 'panel-badge danger' },
+  };
+
+  Object.entries(panelsMap).forEach(([key, panelEl]) => {
+    if (!panelEl) return;
+    panelEl.classList.toggle('hidden', key !== nextAction);
+  });
+
+  stockActionChoiceBtns.forEach((btn) => {
+    const isSelected = btn.dataset.stockAction === nextAction;
+    btn.classList.toggle('active', isSelected);
+    btn.setAttribute('aria-expanded', isSelected ? 'true' : 'false');
+  });
+
+  if (stockActiveActionBadge) {
+    if (nextAction && labelsMap[nextAction]) {
+      stockActiveActionBadge.textContent = labelsMap[nextAction].text;
+      stockActiveActionBadge.className = labelsMap[nextAction].cls;
+    } else {
+      stockActiveActionBadge.textContent = 'Selecciona una acción';
+      stockActiveActionBadge.className = 'panel-badge info';
+    }
+  }
+
+  if (nextAction === 'new' && npNombre) {
+    setTimeout(() => npNombre.focus(), 40);
+  } else if (nextAction === 'entry' && seProductSearchInput) {
+    setTimeout(() => seProductSearchInput.focus(), 40);
+  } else if (nextAction === 'loss' && slProductSearchInput) {
+    setTimeout(() => slProductSearchInput.focus(), 40);
+  }
+}
+
+stockActionChoiceBtns.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    setActiveStockActionPanel(btn.dataset.stockAction);
+  });
+});
+
+closeStockPanelBtns.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    if (activeStockAction) {
+      setActiveStockActionPanel(activeStockAction);
+    }
+  });
+});
 
 function showFeedback(boxEl, type, message) {
   boxEl.className = `status-box ${type}`;
@@ -572,6 +1217,194 @@ function updateCalculatedPrecioFinal() {
 
 npPrecioNeto.addEventListener('input', updateCalculatedPrecioFinal);
 npExento.addEventListener('change', updateCalculatedPrecioFinal);
+
+function filterStockProductsByQuery(rawQuery = '') {
+  const q = String(rawQuery || '').trim().toLowerCase();
+  if (!q) return cachedStockProducts;
+  return cachedStockProducts.filter((p) => {
+    const nombre = String(p.nombre || '').toLowerCase();
+    const sku = String(p.sku || '').toLowerCase();
+    const barcode = String(p.codigo_barras || '').toLowerCase();
+    const idStr = `#${p.id_producto}`;
+    return (
+      nombre.includes(q) ||
+      sku.includes(q) ||
+      barcode.includes(q) ||
+      idStr.includes(q)
+    );
+  });
+}
+
+const MAX_PRODUCT_SELECT_OPTIONS = 120;
+
+function buildProductOptionsHtml(products, selectedId = '') {
+  const list = Array.isArray(products) ? products : [];
+  const sliced = list.slice(0, MAX_PRODUCT_SELECT_OPTIONS);
+  if (
+    selectedId &&
+    !sliced.some((p) => String(p.id_producto) === String(selectedId))
+  ) {
+    const selectedObj = cachedStockProducts.find(
+      (p) => String(p.id_producto) === String(selectedId)
+    );
+    if (selectedObj) {
+      sliced.unshift(selectedObj);
+    }
+  }
+
+  return (
+    '<option value="">Selecciona un producto...</option>' +
+    sliced
+      .map(
+        (p) =>
+          `<option value="${p.id_producto}" ${
+            String(p.id_producto) === String(selectedId) ? 'selected' : ''
+          }>${escapeHtml(p.nombre)} (${escapeHtml(
+            p.sku || p.codigo_barras || `ID #${p.id_producto}`
+          )}) — Stock: ${formatNumber(p.stock_actual)} ${escapeHtml(p.unidad_medida)}</option>`
+      )
+      .join('')
+  );
+}
+
+function updateSelectedProductInfoPill(pillEl, prod, mode = 'entry') {
+  if (!pillEl) return;
+  if (!prod) {
+    pillEl.classList.add('hidden');
+    pillEl.innerHTML = '';
+    return;
+  }
+  const stockActual = Number(prod.stock_actual) || 0;
+  const badgeCls =
+    mode === 'loss' && stockActual <= 0 ? 'danger' : stockActual <= 0 ? 'warning' : 'success';
+  pillEl.className = `selected-product-pill ${badgeCls}`;
+  pillEl.innerHTML = `
+    <span><strong>Seleccionado:</strong> ${escapeHtml(prod.nombre)}</span>
+    <span class="font-mono">SKU: ${escapeHtml(prod.sku || 'S/N')} · Cód: ${escapeHtml(prod.codigo_barras || '—')}</span>
+    <span class="font-mono">Stock actual: <strong>${formatNumber(stockActual)} ${escapeHtml(prod.unidad_medida)}</strong></span>
+  `;
+}
+
+function renderStockProductQuickResults(resultsEl, matches, query, onSelectId) {
+  if (!resultsEl) return;
+  const trimmed = String(query || '').trim();
+  if (!trimmed) {
+    resultsEl.classList.add('hidden');
+    resultsEl.innerHTML = '';
+    return;
+  }
+
+  resultsEl.classList.remove('hidden');
+  if (!matches.length) {
+    resultsEl.innerHTML = `<div class="stock-search-empty">No se encontraron productos para "${escapeHtml(trimmed)}".</div>`;
+    return;
+  }
+
+  resultsEl.innerHTML = matches
+    .slice(0, 8)
+    .map(
+      (p) => `
+        <button type="button" class="stock-search-result-item" data-pick-prod-id="${p.id_producto}">
+          <div class="stock-search-result-main">
+            <strong>${escapeHtml(p.nombre)}</strong>
+            <span class="font-mono">${escapeHtml(p.sku || p.codigo_barras || `ID #${p.id_producto}`)}</span>
+          </div>
+          <span class="stock-search-result-stock font-mono">
+            Stock: <strong>${formatNumber(p.stock_actual)} ${escapeHtml(p.unidad_medida)}</strong>
+          </span>
+        </button>
+      `
+    )
+    .join('');
+
+  resultsEl.querySelectorAll('[data-pick-prod-id]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      onSelectId(btn.dataset.pickProdId);
+    });
+  });
+}
+
+function selectProductForStockEntry(prodId) {
+  const prod = cachedStockProducts.find((p) => String(p.id_producto) === String(prodId));
+  seProducto.innerHTML = buildProductOptionsHtml(cachedStockProducts, prod ? prod.id_producto : '');
+  seProducto.value = prod ? String(prod.id_producto) : '';
+  if (prod) {
+    seCostoUnitario.value = prod.costo_promedio ?? 0;
+    if (seProductSearchResults) seProductSearchResults.classList.add('hidden');
+    if (seCantidad) seCantidad.focus();
+  }
+  updateSelectedProductInfoPill(seSelectedProductInfo, prod, 'entry');
+}
+
+function selectProductForStockLoss(prodId) {
+  const prod = cachedStockProducts.find((p) => String(p.id_producto) === String(prodId));
+  slProducto.innerHTML = buildProductOptionsHtml(cachedStockProducts, prod ? prod.id_producto : '');
+  slProducto.value = prod ? String(prod.id_producto) : '';
+  if (prod) {
+    slCantidad.max = prod.stock_actual > 0 ? prod.stock_actual : '';
+    if (slProductSearchResults) slProductSearchResults.classList.add('hidden');
+    if (slCantidad) slCantidad.focus();
+  } else {
+    slCantidad.removeAttribute('max');
+  }
+  updateSelectedProductInfoPill(slSelectedProductInfo, prod, 'loss');
+}
+
+let seSearchDebounce = null;
+if (seProductSearchInput) {
+  seProductSearchInput.addEventListener('input', () => {
+    clearTimeout(seSearchDebounce);
+    seSearchDebounce = setTimeout(() => {
+      const q = seProductSearchInput.value;
+      const matches = filterStockProductsByQuery(q);
+      seProducto.innerHTML = buildProductOptionsHtml(matches, seProducto.value);
+      renderStockProductQuickResults(seProductSearchResults, matches, q, (pickedId) => {
+        selectProductForStockEntry(pickedId);
+        const picked = cachedStockProducts.find((p) => String(p.id_producto) === String(pickedId));
+        if (picked) seProductSearchInput.value = picked.nombre;
+      });
+    }, 160);
+  });
+
+  seProductSearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const matches = filterStockProductsByQuery(seProductSearchInput.value);
+      if (matches.length > 0) {
+        e.preventDefault();
+        selectProductForStockEntry(matches[0].id_producto);
+        seProductSearchInput.value = matches[0].nombre;
+      }
+    }
+  });
+}
+
+let slSearchDebounce = null;
+if (slProductSearchInput) {
+  slProductSearchInput.addEventListener('input', () => {
+    clearTimeout(slSearchDebounce);
+    slSearchDebounce = setTimeout(() => {
+      const q = slProductSearchInput.value;
+      const matches = filterStockProductsByQuery(q);
+      slProducto.innerHTML = buildProductOptionsHtml(matches, slProducto.value);
+      renderStockProductQuickResults(slProductSearchResults, matches, q, (pickedId) => {
+        selectProductForStockLoss(pickedId);
+        const picked = cachedStockProducts.find((p) => String(p.id_producto) === String(pickedId));
+        if (picked) slProductSearchInput.value = picked.nombre;
+      });
+    }, 160);
+  });
+
+  slProductSearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const matches = filterStockProductsByQuery(slProductSearchInput.value);
+      if (matches.length > 0) {
+        e.preventDefault();
+        selectProductForStockLoss(matches[0].id_producto);
+        slProductSearchInput.value = matches[0].nombre;
+      }
+    }
+  });
+}
 
 function renderKardexMovements(movimientos = []) {
   kardexCountBadge.textContent = `${movimientos.length} movimiento(s)`;
@@ -653,20 +1486,27 @@ function populateStockManagementSelectors(data) {
   const prevSeProd = seProducto.value;
   const prevSlProd = slProducto.value;
 
-  const productOptionsHtml =
-    '<option value="">Selecciona un producto...</option>' +
-    cachedStockProducts
-      .map(
-        (p) =>
-          `<option value="${p.id_producto}">${escapeHtml(p.nombre)} (${escapeHtml(p.sku || `ID #${p.id_producto}`)}) — Stock: ${formatNumber(p.stock_actual)} ${escapeHtml(p.unidad_medida)}</option>`
-      )
-      .join('');
+  const seFiltered = filterStockProductsByQuery(seProductSearchInput ? seProductSearchInput.value : '');
+  const slFiltered = filterStockProductsByQuery(slProductSearchInput ? slProductSearchInput.value : '');
 
-  seProducto.innerHTML = productOptionsHtml;
-  slProducto.innerHTML = productOptionsHtml;
+  seProducto.innerHTML = buildProductOptionsHtml(seFiltered, prevSeProd);
+  slProducto.innerHTML = buildProductOptionsHtml(slFiltered, prevSlProd);
 
-  if (prevSeProd) seProducto.value = prevSeProd;
-  if (prevSlProd) slProducto.value = prevSlProd;
+  if (prevSeProd) {
+    seProducto.value = prevSeProd;
+    const prod = cachedStockProducts.find((p) => String(p.id_producto) === String(prevSeProd));
+    updateSelectedProductInfoPill(seSelectedProductInfo, prod, 'entry');
+  } else {
+    updateSelectedProductInfoPill(seSelectedProductInfo, null, 'entry');
+  }
+
+  if (prevSlProd) {
+    slProducto.value = prevSlProd;
+    const prod = cachedStockProducts.find((p) => String(p.id_producto) === String(prevSlProd));
+    updateSelectedProductInfoPill(slSelectedProductInfo, prod, 'loss');
+  } else {
+    updateSelectedProductInfoPill(slSelectedProductInfo, null, 'loss');
+  }
 }
 
 seProducto.addEventListener('change', () => {
@@ -674,6 +1514,7 @@ seProducto.addEventListener('change', () => {
   if (prod) {
     seCostoUnitario.value = prod.costo_promedio ?? 0;
   }
+  updateSelectedProductInfoPill(seSelectedProductInfo, prod, 'entry');
 });
 
 slProducto.addEventListener('change', () => {
@@ -683,6 +1524,7 @@ slProducto.addEventListener('change', () => {
   } else {
     slCantidad.removeAttribute('max');
   }
+  updateSelectedProductInfoPill(slSelectedProductInfo, prod, 'loss');
 });
 
 async function loadStockManagementSection() {
@@ -1245,15 +2087,38 @@ async function loadSalesSection() {
   }
 }
 
+async function executePosCatalogSearch() {
+  try {
+    const productos = await window.LocalSqliteEngine.searchPosProducts({
+      q: posSearchInput.value.trim(),
+      id_categoria: posCategoryFilter.value || '',
+      solo_con_stock: posStockFilter.value || '0',
+      limite_productos: '60',
+    });
+    renderPosProducts(productos || []);
+  } catch (err) {
+    if (err && err.status === 404) {
+      window.location.href = '/';
+      return;
+    }
+    posProductsTableBody.innerHTML = `
+      <tr>
+        <td colspan="5" class="empty-cell">${escapeHtml(err.message)}</td>
+      </tr>
+    `;
+  }
+}
+
 let posSearchDebounce = null;
 posSearchInput.addEventListener('input', () => {
   clearTimeout(posSearchDebounce);
-  posSearchDebounce = setTimeout(loadSalesSection, 220);
+  posSearchDebounce = setTimeout(executePosCatalogSearch, 180);
 });
 
 posSearchForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  await loadSalesSection();
+  clearTimeout(posSearchDebounce);
+  await executePosCatalogSearch();
 
   // Si el usuario buscó un SKU o código de barras exacto (o quedó 1 único producto con stock), lo agrega directo
   const term = posSearchInput.value.trim().toLowerCase();
@@ -1272,14 +2137,14 @@ posSearchForm.addEventListener('submit', async (e) => {
 });
 
 [posCategoryFilter, posStockFilter].forEach((el) => {
-  el.addEventListener('change', loadSalesSection);
+  el.addEventListener('change', executePosCatalogSearch);
 });
 
 posClearSearchBtn.addEventListener('click', () => {
   posSearchInput.value = '';
   posCategoryFilter.value = '';
   posStockFilter.value = '0';
-  loadSalesSection();
+  executePosCatalogSearch();
 });
 
 refreshSalesBtn.addEventListener('click', loadSalesSection);
