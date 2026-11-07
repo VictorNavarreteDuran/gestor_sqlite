@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PIME ERP — Panel de Inicio</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="dashboard-body">
+  <!-- Navbar Principal -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="/dashboard.html" class="navbar-brand">
+        <span class="brand-logo">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </span>
+        <span class="brand-text">PIME <strong>SQLite</strong></span>
+      </a>
+
+      <ul class="navbar-links" id="navbarLinks">
+        <li>
+          <a href="#inicio" class="nav-link active" data-section="inicio">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Inicio
+          </a>
+        </li>
+        <li>
+          <a href="#inventario" class="nav-link" data-section="inventario">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            Inventario
+          </a>
+        </li>
+        <li>
+          <a href="#ventas" class="nav-link" data-section="ventas">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            Registro de Ventas
+          </a>
+        </li>
+        <li>
+          <a href="#compras" class="nav-link" data-section="compras">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+            Compras
+          </a>
+        </li>
+        <li>
+          <a href="#kardex" class="nav-link" data-section="kardex">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Gestión de Stock y Mermas
+          </a>
+        </li>
+        <li>
+          <a href="#clientes" class="nav-link" data-section="clientes">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Clientes y Proveedores
+          </a>
+        </li>
+      </ul>
+
+      <div class="navbar-actions">
+        <div class="db-pill" id="activeDbPill" title="Archivo SQLite editado 100% en tu navegador (sin enviar datos al servidor)">
+          <span class="dot active"></span>
+          <span id="navDbName">Cargando DB local...</span>
+        </div>
+        <button type="button" class="btn-nav-outline" id="downloadActiveDbBtn" title="Descargar el archivo .db actualizado a tu computador">
+          Descargar .db
+        </button>
+        <button type="button" class="btn-nav-outline" id="closeDbSessionBtn" title="Cerrar sesión local y limpiar memoria del navegador">
+          Cerrar / Cambiar DB
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenedor Principal -->
+  <div class="dashboard-wrapper">
+    <!-- Vista Principal: Inicio -->
+    <section id="section-inicio" class="dashboard-section">
+      <div class="page-header">
+        <div>
+          <span class="badge">Resumen Operativo</span>
+          <h1>Panel de Inicio</h1>
+          <p class="subtitle-left"> Estado general de ventas, alertas de reposición y rendimiento de productos en tiempo real.</p>
+        </div>
+        <button type="button" class="btn btn-refresh" id="refreshBtn">
+          Actualizar datos
+        </button>
+      </div>
+
+      <!-- Tarjetas KPI de Resumen de Ventas e Inventario -->
+      <div class="kpi-grid">
+        <article class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Ventas de Hoy</span>
+            <span class="kpi-icon blue">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </span>
+          </div>
+          <div class="kpi-value" id="kpiHoyMonto">$0</div>
+          <div class="kpi-meta" id="kpiHoyCantidad">0 ventas completadas hoy</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Ventas del Mes</span>
+            <span class="kpi-icon emerald">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
+          </div>
+          <div class="kpi-value" id="kpiMesMonto">$0</div>
+          <div class="kpi-meta" id="kpiMesCantidad">0 documentos este mes</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Ventas Acumuladas</span>
+            <span class="kpi-icon purple">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            </span>
+          </div>
+          <div class="kpi-value" id="kpiTotalMonto">$0</div>
+          <div class="kpi-meta" id="kpiUtilidad">Utilidad est.: $0 (0 ventas)</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Alerta de Stock Bajo</span>
+            <span class="kpi-icon amber">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </span>
+          </div>
+          <div class="kpi-value" id="kpiStockBajo">0</div>
+          <div class="kpi-meta" id="kpiTotalProductos">De 0 productos activos</div>
+        </article>
+      </div>
+
+      <!-- Paneles Principales: Stock Bajo y Productos Más Vendidos -->
+      <div class="dashboard-panels">
+        <!-- Panel 1: Stock Bajo de Productos -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h2>Stock Bajo de Productos</h2>
+              <p class="panel-subtitle">Productos con stock actual igual o inferior al stock mínimo definido</p>
+            </div>
+            <span class="panel-badge warning" id="lowStockBadge">0 críticos</span>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Producto / SKU</th>
+                  <th>Categoría</th>
+                  <th class="text-right">Stock Actual</th>
+                  <th class="text-right">Mínimo</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="lowStockTableBody">
+                <tr>
+                  <td colspan="5" class="empty-cell">Cargando productos...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Panel 2: Productos Más Vendidos -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h2>Productos Más Vendidos</h2>
+              <p class="panel-subtitle">Ranking por unidades vendidas e ingresos generados en ventas completadas</p>
+            </div>
+            <span class="panel-badge info" id="topProductsBadge">Top 10</span>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Producto</th>
+                  <th class="text-right">Cant. Vendida</th>
+                  <th class="text-right">Ingresos</th>
+                </tr>
+              </thead>
+              <tbody id="topProductsTableBody">
+                <tr>
+                  <td colspan="4" class="empty-cell">Cargando ranking...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- Panel Inferior: Últimas Ventas Registradas -->
+      <section class="panel-card">
+        <div class="panel-header">
+          <div>
+            <h2>Últimas Ventas Registradas</h2>
+            <p class="panel-subtitle">Movimientos recientes de facturación, boletas y tickets internos</p>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID / Documento</th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th class="text-right">Total Venta</th>
+              </tr>
+            </thead>
+            <tbody id="recentSalesTableBody">
+              <tr>
+                <td colspan="5" class="empty-cell">Cargando historial reciente...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- Vista de Inventario -->
+    <section id="section-inventario" class="dashboard-section hidden">
+      <div class="page-header">
+        <div>
+          <span class="badge">Catálogo y Control de Existencias</span>
+          <h1>Sección de Inventario</h1>
+          <p class="subtitle-left">Buscador avanzado de productos, alertas de reposición de urgencia y ranking de productos más vendidos.</p>
+        </div>
+        <button type="button" class="btn btn-refresh" id="refreshInventoryBtn">
+          Actualizar inventario
+        </button>
+      </div>
+
+      <!-- Paneles Superiores: Stock de Urgencia, Baja Rotación y Productos Más Vendidos -->
+      <div class="dashboard-panels">
+        <!-- Columna Izquierda: Stock de Urgencia + Artículos con Pocas Ventas debajo -->
+        <div class="dashboard-Section-stack" style="display: flex; flex-direction: column; gap: 1.5rem;">
+          <!-- Panel 1: Productos que necesitan Stock de Urgencia -->
+          <section class="panel-card">
+            <div class="panel-header">
+              <div>
+                <h2>Stock de Urgencia</h2>
+                <p class="panel-subtitle">Productos agotados o en/bajo el stock mínimo que requieren reposición inmediata</p>
+              </div>
+              <div class="panel-controls">
+                <select id="invUrgentLimit" class="filter-select filter-select-sm" title="Límite predeterminado de resultados">
+                  <option value="10">Top 10</option>
+                  <option value="20" selected>Top 20 (Predet.)</option>
+                  <option value="50">Top 50</option>
+                </select>
+                <span class="panel-badge danger" id="invUrgentBadge">0 urgentes</span>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Producto / SKU</th>
+                    <th>Categoría</th>
+                    <th class="text-right">Stock Actual</th>
+                    <th class="text-right">Mínimo</th>
+                    <th class="text-right">Déficit</th>
+                    <th class="text-right">Costo Reposición</th>
+                    <th>Urgencia</th>
+                  </tr>
+                </thead>
+                <tbody id="invUrgentTableBody">
+                  <tr>
+                    <td colspan="7" class="empty-cell">Cargando alertas de stock de urgencia...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Panel 1.2 (Debajo de Stock de Urgencia): Artículos con Pocas Ventas y Fecha de Ingreso de Stock -->
+          <section class="panel-card">
+            <div class="panel-header">
+              <div>
+                <h2>Artículos con Pocas Ventas (Baja Rotación)</h2>
+                <p class="panel-subtitle">Productos con menor salida comercial y su última fecha de ingreso de stock en Kardex</p>
+              </div>
+              <div class="panel-controls">
+                <select id="invSlowLimit" class="filter-select filter-select-sm" title="Límite predeterminado de baja rotación">
+                  <option value="5">Top 5</option>
+                  <option value="10" selected>Top 10 (Predet.)</option>
+                  <option value="25">Top 25</option>
+                </select>
+                <span class="panel-badge warning" id="invSlowBadge">0 artículos</span>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Producto / SKU</th>
+                    <th>Categoría</th>
+                    <th class="text-right">Vendido</th>
+                    <th class="text-right">Stock Actual</th>
+                    <th>Fecha Ingreso Stock</th>
+                    <th>Ref. Ingreso</th>
+                  </tr>
+                </thead>
+                <tbody id="invSlowTableBody">
+                  <tr>
+                    <td colspan="6" class="empty-cell">Cargando artículos de baja rotación...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <!-- Panel 2: Productos que Más se Venden -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h2>Productos Más Vendidos</h2>
+              <p class="panel-subtitle">Ranking histórico en ventas <code>COMPLETADA</code> con utilidad congelada</p>
+            </div>
+            <div class="panel-controls">
+              <select id="invTopLimit" class="filter-select filter-select-sm" title="Límite predeterminado de ranking">
+                <option value="5">Top 5</option>
+                <option value="10" selected>Top 10 (Predet.)</option>
+                <option value="25">Top 25</option>
+              </select>
+              <span class="panel-badge info" id="invTopBadge">Top 10</span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Producto / SKU</th>
+                  <th class="text-right">Vendido</th>
+                  <th class="text-right">Ingresos</th>
+                  <th class="text-right">Utilidad Hist.</th>
+                  <th class="text-right">Stock Actual</th>
+                </tr>
+              </thead>
+              <tbody id="invTopTableBody">
+                <tr>
+                  <td colspan="6" class="empty-cell">Cargando productos más vendidos...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- Panel Principal: Buscador de Productos y Datos Encontrados -->
+      <section class="panel-card">
+        <div class="panel-header">
+          <div>
+            <h2>Buscador de Productos</h2>
+            <p class="panel-subtitle">Consulta parametrizada por nombre, SKU, código de barras, categoría, unidad de medida y estado</p>
+          </div>
+          <span class="panel-badge info" id="invSearchCountBadge">0 encontrados</span>
+        </div>
+
+        <form id="invSearchForm" class="search-toolbar">
+          <div class="search-input-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              type="search"
+              id="invSearchInput"
+              placeholder="Buscar por nombre, SKU, código de barras o descripción..."
+              autocomplete="off"
+            />
+          </div>
+
+          <select id="invCategoryFilter" class="filter-select">
+            <option value="">Todas las categorías (Predet.)</option>
+          </select>
+
+          <select id="invUnitFilter" class="filter-select">
+            <option value="">Todas las unidades (Predet.)</option>
+            <option value="UN">UN (Unidad)</option>
+            <option value="KG">KG (Kilogramo)</option>
+            <option value="LT">LT (Litro)</option>
+            <option value="MT">MT (Metro)</option>
+            <option value="CAJA">CAJA</option>
+          </select>
+
+          <select id="invStatusFilter" class="filter-select">
+            <option value="1" selected>Activos (1 - Predet.)</option>
+            <option value="0">Inactivos (0)</option>
+            <option value="ALL">Todos</option>
+          </select>
+
+          <select id="invLimitFilter" class="filter-select">
+            <option value="25">25 registros</option>
+            <option value="50" selected>50 registros (Predet.)</option>
+            <option value="100">100 registros</option>
+          </select>
+
+          <button type="submit" class="btn btn-primary btn-sm" id="invSearchBtn">Buscar</button>
+          <button type="button" class="btn btn-refresh btn-sm" id="invResetBtn">Restablecer</button>
+        </form>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID / SKU / Cód. Barras</th>
+                <th>Producto / Descripción</th>
+                <th>Categoría</th>
+                <th>Unidad</th>
+                <th class="text-right">Costo Prom.</th>
+                <th class="text-right">Precio Neto</th>
+                <th>IVA</th>
+                <th class="text-right">Precio Final</th>
+                <th class="text-right">Stock Actual</th>
+                <th class="text-right">Stock Mín.</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="invSearchResultsBody">
+              <tr>
+                <td colspan="11" class="empty-cell">Ejecutando consulta con parámetros predeterminados...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- Vista de Gestión de Stock, Productos Nuevos y Mermas (antes Kardex) -->
+    <section id="section-kardex" class="dashboard-section hidden">
+      <div class="page-header">
+        <div>
+          <span class="badge">Control de Existencias y Kardex Inmutable</span>
+          <h1>Gestión de Productos, Stock y Mermas</h1>
+          <p class="subtitle-left">Registra productos nuevos, ingresos de stock y bajas por mermas/pérdidas actualizando el inventario vía Kardex.</p>
+        </div>
+        <div class="panel-controls">
+          <label for="stockActiveUser" class="kpi-label">Operador:</label>
+          <select id="stockActiveUser" class="filter-select" title="Usuario responsable del movimiento">
+            <option value="">Cargando usuario...</option>
+          </select>
+          <button type="button" class="btn btn-refresh" id="refreshStockMgmtBtn">
+            Actualizar datos
+          </button>
+        </div>
+      </div>
+
+      <!-- Tres Paneles Operativos: 1) Producto Nuevo, 2) Ingreso de Stock, 3) Mermas/Pérdidas -->
+      <div class="stock-actions-grid">
+        <!-- Tarjeta 1: Ingresar Producto Nuevo -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h2>1. Ingresar Producto Nuevo</h2>
+              <p class="panel-subtitle">Crea un artículo en catálogo y registra su stock inicial mediante Kardex</p>
+            </div>
+            <span class="panel-badge info">Catálogo</span>
+          </div>
+
+          <form id="formNewProduct" class="stock-form">
+            <div class="form-row-2">
+              <div class="input-group">
+                <label for="npNombre">Nombre del Producto *</label>
+                <input type="text" id="npNombre" class="form-input" placeholder="Ej: Artículo o Producto General" required />
+              </div>
+              <div class="input-group">
+                <label for="npUnidad">Unidad de Medida *</label>
+                <select id="npUnidad" class="filter-select" required>
+                  <option value="UN" selected>UN (Unidad)</option>
+                  <option value="KG">KG (Kilogramo)</option>
+                  <option value="LT">LT (Litro)</option>
+                  <option value="MT">MT (Metro)</option>
+                  <option value="CAJA">CAJA</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="input-group">
+                <label for="npSku">SKU (Único)</label>
+                <input type="text" id="npSku" class="form-input" placeholder="Ej: PROD-001" />
+              </div>
+              <div class="input-group">
+                <label for="npBarcode">Código de Barras (Único)</label>
+                <input type="text" id="npBarcode" class="form-input" placeholder="Ej: 780000000001" />
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="input-group">
+                <label for="npCategoria">Categoría Existente</label>
+                <select id="npCategoria" class="filter-select">
+                  <option value="">Sin categoría</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label for="npNuevaCategoria">O Crear Categoría</label>
+                <input type="text" id="npNuevaCategoria" class="form-input" placeholder="Ej: General / Insumos" />
+              </div>
+            </div>
+
+            <div class="form-row-3">
+              <div class="input-group">
+                <label for="npCosto">Costo Prom. ($) *</label>
+                <input type="number" step="any" min="0" id="npCosto" class="form-input" value="0" required />
+              </div>
+              <div class="input-group">
+                <label for="npPrecioNeto">Precio Neto ($) *</label>
+                <input type="number" step="any" min="0" id="npPrecioNeto" class="form-input" value="0" required />
+              </div>
+              <div class="input-group">
+                <label for="npExento">Régimen IVA</label>
+                <select id="npExento" class="filter-select">
+                  <option value="0" selected>Afecto (0 - 19%)</option>
+                  <option value="1">Exento (1)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-3">
+              <div class="input-group">
+                <label for="npPrecioFinal">Precio Venta Final ($) *</label>
+                <input type="number" step="any" min="0" id="npPrecioFinal" class="form-input" value="0" required />
+              </div>
+              <div class="input-group">
+                <label for="npStockMinimo">Stock Mínimo *</label>
+                <input type="number" step="any" min="0" id="npStockMinimo" class="form-input" value="5" required />
+              </div>
+              <div class="input-group">
+                <label for="npStockInicial">Stock Inicial</label>
+                <input type="number" step="any" min="0" id="npStockInicial" class="form-input" value="0" required />
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label for="npDescripcion">Descripción</label>
+              <input type="text" id="npDescripcion" class="form-input" placeholder="Detalle opcional del producto..." />
+            </div>
+
+            <div id="npFeedback" class="status-box hidden"></div>
+
+            <button type="submit" class="btn btn-primary" id="npSubmitBtn">
+              Registrar Producto Nuevo
+            </button>
+          </form>
+        </section>
+
+        <!-- Tarjeta 2: Ingresar Stock Nuevo -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h2>2. Ingresar Stock Nuevo</h2>
+              <p class="panel-subtitle">Suma existencias al inventario insertando en <code>movimientos_inventario</code></p>
+            </div>
+            <span class="panel-badge success-badge">Entrada (+)</span>
+          </div>
+
+          <form id="formStockEntry" class="stock-form">
+            <div class="input-group">
+              <label for="seProducto">Producto a Abastecer *</label>
+              <select id="seProducto" class="filter-select" required>
+                <option value="">Selecciona un producto...</option>
+              </select>
+            </div>
+
+            <div class="form-row-2">
+              <div class="input-group">
+                <label for="seTipo">Tipo de Movimiento *</label>
+                <select id="seTipo" class="filter-select" required>
+                  <option value="ENTRADA_COMPRA" selected>ENTRADA_COMPRA (Predet.)</option>
+                  <option value="AJUSTE_POSITIVO">AJUSTE_POSITIVO</option>
+                  <option value="DEVOLUCION_CLIENTE">DEVOLUCION_CLIENTE</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label for="seCantidad">Cantidad a Ingresar (&gt; 0) *</label>
+                <input type="number" step="any" min="0.01" id="seCantidad" class="form-input" placeholder="Ej: 15" required />
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="input-group">
+                <label for="seCostoUnitario">Costo Unitario Neto ($)</label>
+                <input type="number" step="any" min="0" id="seCostoUnitario" class="form-input" placeholder="Costo unitario de ingreso" />
+              </div>
+              <div class="input-group">
+                <label for="seReferencia">Referencia Origen</label>
+                <input type="text" id="seReferencia" class="form-input" value="INGRESO BODEGA" placeholder="Ej: FACTURA #104 / CONTEO" />
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label for="seMotivo">Motivo / Observación *</label>
+              <input type="text" id="seMotivo" class="form-input" value="Reposición de stock en bodega" required />
+            </div>
+
+            <div id="seFeedback" class="status-box hidden"></div>
+
+            <button type="submit" class="btn btn-secondary" id="seSubmitBtn">
+              Confirmar Ingreso de Stock
+            </button>
+          </form>
+        </section>
+
+        <!-- Tarjeta 3: Ingresar Mermas o Pérdidas -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h2>3. Ingresar Mermas o Pérdidas</h2>
+              <p class="panel-subtitle">Descuenta existencias por deterioro, vencimiento, pérdida o ajuste negativo</p>
+            </div>
+            <span class="panel-badge danger">Salida (-)</span>
+          </div>
+
+          <form id="formStockLoss" class="stock-form">
+            <div class="input-group">
+              <label for="slProducto">Producto Afectado *</label>
+              <select id="slProducto" class="filter-select" required>
+                <option value="">Selecciona un producto...</option>
+              </select>
+            </div>
+
+            <div class="form-row-2">
+              <div class="input-group">
+                <label for="slTipo">Tipo de Baja *</label>
+                <select id="slTipo" class="filter-select" required>
+                  <option value="MERMA" selected>MERMA (Pérdida / Daño - Predet.)</option>
+                  <option value="AJUSTE_NEGATIVO">AJUSTE_NEGATIVO (Diferencia conteo)</option>
+                  <option value="DEVOLUCION_PROVEEDOR">DEVOLUCION_PROVEEDOR</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label for="slCantidad">Cantidad a Descontar (&gt; 0) *</label>
+                <input type="number" step="any" min="0.01" id="slCantidad" class="form-input" placeholder="Ej: 2" required />
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label for="slReferencia">Referencia Origen</label>
+              <input type="text" id="slReferencia" class="form-input" value="ACTA DE MERMA" placeholder="Ej: ACTA MERMA #12 / REVISION" />
+            </div>
+
+            <div class="input-group">
+              <label for="slMotivo">Motivo de la Merma o Pérdida *</label>
+              <input type="text" id="slMotivo" class="form-input" placeholder="Ej: Producto dañado en transporte / vencimiento" required />
+            </div>
+
+            <div id="slFeedback" class="status-box hidden"></div>
+
+            <button type="submit" class="btn btn-danger" id="slSubmitBtn">
+              Registrar Merma / Pérdida
+            </button>
+          </form>
+        </section>
+      </div>
+
+      <!-- Tabla Inferior: Historial de Movimientos en Kardex -->
+      <section class="panel-card">
+        <div class="panel-header">
+          <div>
+            <h2>Historial Reciente de Movimientos (Kardex Inmutable)</h2>
+            <p class="panel-subtitle">Auditoría de todas las entradas, salidas, ajustes y mermas que actualizan <code>stock_actual</code> mediante el trigger</p>
+          </div>
+          <div class="panel-controls">
+            <select id="kardexFilterTipo" class="filter-select filter-select-sm">
+              <option value="">Todos los movimientos (Predet.)</option>
+              <option value="ENTRADA_COMPRA">ENTRADA_COMPRA</option>
+              <option value="AJUSTE_POSITIVO">AJUSTE_POSITIVO</option>
+              <option value="DEVOLUCION_CLIENTE">DEVOLUCION_CLIENTE</option>
+              <option value="MERMA">MERMA</option>
+              <option value="AJUSTE_NEGATIVO">AJUSTE_NEGATIVO</option>
+              <option value="DEVOLUCION_PROVEEDOR">DEVOLUCION_PROVEEDOR</option>
+              <option value="SALIDA_VENTA">SALIDA_VENTA</option>
+            </select>
+            <select id="kardexFilterLimit" class="filter-select filter-select-sm">
+              <option value="15">Últimos 15</option>
+              <option value="30" selected>Últimos 30 (Predet.)</option>
+              <option value="60">Últimos 60</option>
+            </select>
+            <span class="panel-badge info" id="kardexCountBadge">0 movimientos</span>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID / Fecha</th>
+                <th>Producto / SKU</th>
+                <th>Tipo Movimiento</th>
+                <th class="text-right">Cantidad</th>
+                <th class="text-right">Stock Ant. → Resultante</th>
+                <th class="text-right">Costo Unit.</th>
+                <th>Referencia / Motivo</th>
+                <th>Operador</th>
+              </tr>
+            </thead>
+            <tbody id="kardexTableBody">
+              <tr>
+                <td colspan="8" class="empty-cell">Cargando historial de Kardex...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- Vista de Ingreso / Registro de Ventas (POS) -->
+    <section id="section-ventas" class="dashboard-section hidden">
+      <div class="page-header">
+        <div>
+          <span class="badge">Punto de Venta (POS) y Facturación</span>
+          <h1>Ingreso de Ventas</h1>
+          <p class="subtitle-left">Busca productos por nombre, SKU o código de barras, agrégalos a la venta, aplica descuento en la venta total y registra el cobro con descuento automático de stock vía Kardex.</p>
+        </div>
+        <div class="panel-controls">
+          <label for="posActiveUser" class="kpi-label">Cajero / Vendedor:</label>
+          <select id="posActiveUser" class="filter-select" title="Usuario que registra la venta">
+            <option value="">Cargando usuario...</option>
+          </select>
+          <button type="button" class="btn btn-refresh" id="refreshSalesBtn">
+            Actualizar catálogo
+          </button>
+        </div>
+      </div>
+
+      <!-- Layout Principal POS: Buscador de Productos (Izquierda) + Ticket de Venta y Descuento Total (Derecha) -->
+      <div class="pos-layout-grid">
+        <!-- Columna Izquierda: Buscador de Productos para Agregar a la Venta -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h2>1. Buscador de Productos</h2>
+              <p class="panel-subtitle">Escribe nombre, SKU o escanea el código de barras para encontrar y agregar el producto vendido</p>
+            </div>
+            <span class="panel-badge info" id="posProductsCountBadge">0 productos</span>
+          </div>
+
+          <form id="posSearchForm" class="search-toolbar">
+            <div class="search-input-wrap">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input
+                type="search"
+                id="posSearchInput"
+                placeholder="Buscar producto por nombre, SKU o código de barras (Enter para agregar)..."
+                autocomplete="off"
+              />
+            </div>
+
+            <select id="posCategoryFilter" class="filter-select">
+              <option value="">Todas las categorías</option>
+            </select>
+
+            <select id="posStockFilter" class="filter-select">
+              <option value="0" selected>Todos los activos</option>
+              <option value="1">Solo con stock (&gt; 0)</option>
+            </select>
+
+            <button type="submit" class="btn btn-primary btn-sm">Buscar</button>
+            <button type="button" class="btn btn-refresh btn-sm" id="posClearSearchBtn">Limpiar</button>
+          </form>
+
+          <div class="table-responsive pos-products-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Producto / SKU / Cód.</th>
+                  <th>Categoría</th>
+                  <th class="text-right">Stock Disp.</th>
+                  <th class="text-right">Precio Venta</th>
+                  <th class="text-right" style="width: 175px;">Cant. a Vender</th>
+                </tr>
+              </thead>
+              <tbody id="posProductsTableBody">
+                <tr>
+                  <td colspan="5" class="empty-cell">Cargando buscador de productos...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Columna Derecha: Carrito de Productos Vendidos, Descuento Total y Pago -->
+        <section class="panel-card pos-ticket-panel">
+          <div class="panel-header">
+            <div>
+              <h2>2. Productos en la Venta Actual</h2>
+              <p class="panel-subtitle">Congela precio y costo histórico al confirmar la transacción</p>
+            </div>
+            <div class="panel-controls">
+              <span class="panel-badge success-badge" id="posCartBadge">0 ítems</span>
+              <button type="button" class="btn btn-refresh btn-sm" id="posClearCartBtn" title="Vaciar todos los productos de la venta actual">
+                Vaciar
+              </button>
+            </div>
+          </div>
+
+          <div class="table-responsive pos-cart-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th class="text-right">Precio Unit.</th>
+                  <th class="text-right" style="width: 110px;">Cantidad</th>
+                  <th class="text-right" style="width: 110px;">Dcto. Línea ($)</th>
+                  <th class="text-right">Subtotal</th>
+                  <th class="text-right" style="width: 48px;"></th>
+                </tr>
+              </thead>
+              <tbody id="posCartTableBody">
+                <tr>
+                  <td colspan="6" class="empty-cell">Selecciona o busca productos en el panel izquierdo para agregarlos a la venta.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Bloque de Descuento en la Venta Total (descuento_global) -->
+          <div class="pos-discount-box">
+            <div class="pos-discount-header">
+              <div>
+                <strong>¿Hubo descuento en la venta total?</strong>
+                <p class="cell-secondary">Se guarda en <code>ventas.descuento_global</code> y rebaja el total a pagar</p>
+              </div>
+              <div class="pos-quick-discounts">
+                <button type="button" class="btn-chip" data-discount-pct="0">Sin dcto</button>
+                <button type="button" class="btn-chip" data-discount-pct="5">5%</button>
+                <button type="button" class="btn-chip" data-discount-pct="10">10%</button>
+                <button type="button" class="btn-chip" data-discount-pct="15">15%</button>
+              </div>
+            </div>
+
+            <div class="form-row-3" style="margin-top: 0.65rem; align-items: end;">
+              <div class="input-group">
+                <label for="posDiscountType">Tipo de Descuento</label>
+                <select id="posDiscountType" class="filter-select">
+                  <option value="AMOUNT" selected>Monto fijo ($ CLP)</option>
+                  <option value="PERCENT">Porcentaje (%) sobre subtotal</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label for="posDiscountInput" id="posDiscountInputLabel">Valor del Descuento ($)</label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  id="posDiscountInput"
+                  class="form-input font-mono"
+                  value="0"
+                  placeholder="0"
+                />
+              </div>
+              <div class="input-group">
+                <label>Descuento Total Aplicado</label>
+                <div class="pos-discount-applied font-mono" id="posDiscountComputedDisplay">-$0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumen Financiero de la Venta -->
+          <div class="pos-totals-box">
+            <div class="pos-total-row">
+              <span>Subtotal Productos:</span>
+              <span class="font-mono" id="posSummarySubtotalBruto">$0</span>
+            </div>
+            <div class="pos-total-row discount-row">
+              <span>Descuento en Venta Total (<code>descuento_global</code>):</span>
+              <span class="font-mono" id="posSummaryDescuentoGlobal">-$0</span>
+            </div>
+            <div class="pos-total-row muted-row">
+              <span>Subtotal Neto Estimado (<code>subtotal_neto</code>):</span>
+              <span class="font-mono" id="posSummaryNeto">$0</span>
+            </div>
+            <div class="pos-total-row muted-row">
+              <span>IVA 19% Estimado (<code>total_iva</code>):</span>
+              <span class="font-mono" id="posSummaryIva">$0</span>
+            </div>
+            <div class="pos-total-row grand-total-row">
+              <span>TOTAL VENTA A PAGAR:</span>
+              <span class="font-mono" id="posSummaryTotalVenta">$0</span>
+            </div>
+          </div>
+
+          <!-- Formulario de Documento, Cliente y Medio de Pago -->
+          <form id="posCheckoutForm" class="stock-form">
+            <div class="form-row-3">
+              <div class="input-group">
+                <label for="posTipoDoc">Tipo Documento *</label>
+                <select id="posTipoDoc" class="filter-select" required>
+                  <option value="BOLETA" selected>BOLETA (Predet.)</option>
+                  <option value="FACTURA">FACTURA</option>
+                  <option value="TICKET_INTERNO">TICKET_INTERNO</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label for="posFolioDoc">Folio Documento</label>
+                <input type="text" id="posFolioDoc" class="form-input" placeholder="Ej: 1024 (Opcional)" />
+              </div>
+              <div class="input-group">
+                <label for="posClienteSelect">Cliente</label>
+                <select id="posClienteSelect" class="filter-select">
+                  <option value="">Cliente General (Sin RUT)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-3">
+              <div class="input-group">
+                <label for="posMetodoPago">Método de Pago *</label>
+                <select id="posMetodoPago" class="filter-select" required>
+                  <option value="EFECTIVO" selected>EFECTIVO</option>
+                  <option value="DEBITO">DEBITO</option>
+                  <option value="CREDITO">CREDITO</option>
+                  <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                  <option value="CREDITO_INTERNO">CREDITO_INTERNO</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label for="posReferenciaPago">N° Voucher / Comprobante</label>
+                <input type="text" id="posReferenciaPago" class="form-input" placeholder="Opcional (ej. Transbank / Transf.)" />
+              </div>
+              <div class="input-group">
+                <label for="posEstadoVenta">Estado de Venta *</label>
+                <select id="posEstadoVenta" class="filter-select" required>
+                  <option value="COMPLETADA" selected>COMPLETADA (Descuenta stock)</option>
+                  <option value="PENDIENTE">PENDIENTE</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="posFeedback" class="status-box hidden"></div>
+
+            <button type="submit" class="btn btn-secondary pos-submit-btn" id="posSubmitSaleBtn">
+              Confirmar y Registrar Venta
+            </button>
+          </form>
+        </section>
+      </div>
+
+      <!-- Tabla Inferior: Historial Reciente de Ventas Registradas -->
+      <section class="panel-card">
+        <div class="panel-header">
+          <div>
+            <h2>Historial Reciente de Ventas Registradas</h2>
+            <p class="panel-subtitle">Ventas guardadas en la base de datos con su detalle de productos, descuento global aplicado y método de pago</p>
+          </div>
+          <span class="panel-badge info" id="posHistoryCountBadge">0 ventas</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID / Documento</th>
+                <th>Fecha</th>
+                <th>Cliente / Cajero</th>
+                <th>Productos Vendidos</th>
+                <th>Pago</th>
+                <th class="text-right">Neto + IVA</th>
+                <th class="text-right">Dcto. Total</th>
+                <th class="text-right">Total Venta</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="posSalesHistoryBody">
+              <tr>
+                <td colspan="9" class="empty-cell">Cargando historial de ventas...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- Vista de Clientes y Proveedores (Derechos ARSOP+ Ley 21.719 Chile) -->
+    <section id="section-clientes" class="dashboard-section hidden">
+      <div class="page-header">
+        <div>
+          <span class="badge">Cumplimiento Ley N° 21.719 (Chile) · Derechos ARSOP+</span>
+          <h1>Clientes y Protección de Datos Personales</h1>
+          <p class="subtitle-left">
+            Administra los datos de tus clientes directamente en tu archivo <code>.db</code> local. Permite ejercer los derechos de <strong>Acceso</strong>, <strong>Rectificación</strong>, <strong>Portabilidad (JSON)</strong> y <strong>Supresión</strong> sin enviar datos a servidores externos.
+          </p>
+        </div>
+        <button type="button" class="btn btn-refresh" id="refreshClientsBtn">
+          Actualizar directorio
+        </button>
+      </div>
+
+      <div class="dashboard-panels">
+        <!-- Formulario Crear / Rectificar Cliente -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h2 id="clientFormTitle">Registrar / Rectificar Cliente</h2>
+              <p class="panel-subtitle">Crea un cliente nuevo o actualiza (rectifica) sus datos personales en tu archivo local</p>
+            </div>
+            <span class="panel-badge info">Tabla clientes</span>
+          </div>
+
+          <form id="clientForm" class="stock-form">
+            <input type="hidden" id="cliId" value="" />
+            <div class="form-row-2">
+              <div class="input-group">
+                <label for="cliNombre">Nombre o Razón Social *</label>
+                <input type="text" id="cliNombre" class="form-input" placeholder="Ej: María González / Comercial Sur" required />
+              </div>
+              <div class="input-group">
+                <label for="cliRut">RUT Identificación (Único)</label>
+                <input type="text" id="cliRut" class="form-input" placeholder="Ej: 12.345.678-9" />
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="input-group">
+                <label for="cliGiro">Giro</label>
+                <input type="text" id="cliGiro" class="form-input" placeholder="Ej: Particular / Comercio" />
+              </div>
+              <div class="input-group">
+                <label for="cliTelefono">Teléfono</label>
+                <input type="text" id="cliTelefono" class="form-input" placeholder="Ej: +56 9 1234 5678" />
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="input-group">
+                <label for="cliEmail">Correo Electrónico</label>
+                <input type="email" id="cliEmail" class="form-input" placeholder="cliente@correo.cl" />
+              </div>
+              <div class="input-group">
+                <label for="cliDireccion">Dirección</label>
+                <input type="text" id="cliDireccion" class="form-input" placeholder="Dirección comercial o despacho" />
+              </div>
+            </div>
+
+            <div id="cliFeedback" class="status-box hidden"></div>
+
+            <div style="display: flex; gap: 0.75rem;">
+              <button type="submit" class="btn btn-primary" id="cliSubmitBtn">Guardar Cliente en .db</button>
+              <button type="button" class="btn btn-refresh" id="cliCancelEditBtn">Limpiar formulario</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Listado y Derechos ARSOP+ -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h2>Directorio de Clientes y Derechos del Titular</h2>
+              <p class="panel-subtitle">Muestra los últimos 5 clientes registrados o busca por nombre, RUT, giro o contacto para editar, exportar (Portabilidad Art. 9) o suprimir (Art. 6)</p>
+            </div>
+            <span class="panel-badge info" id="clientsCountBadge">Últimos 5</span>
+          </div>
+
+          <form id="clientSearchForm" class="search-toolbar">
+            <div class="search-input-wrap">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input
+                type="search"
+                id="clientSearchInput"
+                placeholder="Buscar cliente por nombre, RUT, giro, teléfono o correo..."
+                autocomplete="off"
+              />
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm" id="clientSearchBtn">Buscar</button>
+            <button type="button" class="btn btn-refresh btn-sm" id="clientClearSearchBtn">Limpiar</button>
+          </form>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Cliente / RUT</th>
+                  <th>Contacto</th>
+                  <th class="text-right">Compras</th>
+                  <th class="text-right">Acciones (Editar / Ley 21.719)</th>
+                </tr>
+              </thead>
+              <tbody id="clientsTableBody">
+                <tr>
+                  <td colspan="4" class="empty-cell">Cargando clientes desde tu archivo .db local...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- Vista de Otros Módulos del Navbar (Compras, etc.) -->
+    <section id="section-placeholder" class="dashboard-section hidden">
+      <div class="panel-card module-placeholder">
+        <h2 id="moduleTitle">Módulo</h2>
+        <p id="moduleDesc" class="panel-subtitle">Sección lista para conectarse a las tablas de la base de datos activa.</p>
+        <button type="button" class="btn btn-primary" id="backToHomeBtn">Volver a Inicio</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="/vendor/sql.js/sql-wasm.js"></script>
+  <script src="/local-sqlite.js"></script>
+  <script src="/dashboard.js"></script>
+</body>
+</html>
+

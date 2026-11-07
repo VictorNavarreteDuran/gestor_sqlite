@@ -1,0 +1,14 @@
+{
+  "name": "base-sqlite-pime",
+  "version": "1.0.0",
+  "description": "Plataforma web 100% local en navegador (WebAssembly) para gestionar archivos SQLite (.db) sin almacenar datos en el servidor",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "sql.js": "^1.13.0"
+  }
+}

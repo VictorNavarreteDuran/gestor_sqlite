@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestor SQLite PIME — Inicio (100% Local)</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="badge">SQLite Local · Cumplimiento Ley N° 21.719 (Chile)</div>
+      <h1>Gestor de Bases de Datos SQLite</h1>
+      <p class="subtitle">
+        Tu archivo <code>.db</code> <strong>permanece exclusivamente en tu computador</strong>. La web solo edita tu archivo en el navegador y <strong>no guarda ninguna información en el servidor</strong>.
+      </p>
+
+      <!-- Navegación por Pestañas en la Pantalla de Inicio -->
+      <div class="home-tabs" role="tablist" aria-label="Secciones de inicio">
+        <button
+          type="button"
+          class="home-tab-btn active"
+          role="tab"
+          aria-selected="true"
+          data-home-tab="carga"
+          id="tabBtnCarga"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+          </svg>
+          Cargar / Crear Archivo .db
+        </button>
+
+        <button
+          type="button"
+          class="home-tab-btn"
+          role="tab"
+          aria-selected="false"
+          data-home-tab="legal"
+          id="tabBtnLegal"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Aviso Legal y Cómo Funciona
+        </button>
+      </div>
+    </header>
+
+    <!-- PESTAÑA 1: CARGAR O CREAR ARCHIVO .DB -->
+    <div id="homeTabCarga" class="home-tab-panel">
+      <main class="grid">
+        <!-- Tarjeta 1: Cargar archivo .db local -->
+        <section class="card">
+          <div class="card-icon upload-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <h2>Abrir archivo DB desde tu PC</h2>
+          <p class="card-desc">
+            Cada vez que ingreses a la web, selecciona tu archivo <code>.db</code>, <code>.sqlite</code> o <code>.sqlite3</code> desde tu equipo para editarlo localmente.
+          </p>
+
+          <form id="uploadForm" class="form">
+            <label for="dbfile" class="dropzone" id="dropzone">
+              <input type="file" id="dbfile" name="dbfile" accept=".db,.sqlite,.sqlite3" />
+              <span class="dropzone-title" id="fileLabel">Haz clic o arrastra tu archivo .db aquí</span>
+              <span class="dropzone-hint">Ejecución 100% en tu navegador · 0 bytes enviados al servidor</span>
+            </label>
+
+            <button type="submit" class="btn btn-primary" id="uploadBtn">
+              Abrir Base de Datos Local
+            </button>
+          </form>
+
+          <div id="uploadResult" class="status-box hidden"></div>
+        </section>
+
+        <!-- Tarjeta 2: Descargar archivo .db vacío -->
+        <section class="card">
+          <div class="card-icon download-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="5" rx="9" ry="3"/>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+            </svg>
+          </div>
+          <h2>Generar DB vacía en tu PC</h2>
+          <p class="card-desc">
+            Crea al instante en tu propio navegador un archivo SQLite 3 con todas las tablas, índices y triggers del sistema listos para usar.
+          </p>
+
+          <div class="form">
+            <div class="input-group">
+              <label for="emptyDbName">Nombre del archivo</label>
+              <div class="input-suffix-wrapper">
+                <input type="text" id="emptyDbName" value="nueva_base" placeholder="nueva_base" />
+                <span class="suffix">.db</span>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-secondary" id="downloadEmptyBtn">
+              Descargar Archivo .db
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <!-- Estado de Privacidad y Sesión Local -->
+      <section class="active-db-banner" id="activeDbBanner">
+        <div class="banner-header">
+          <span class="dot" id="statusDot"></span>
+          <strong id="statusTitle">Sin archivo cargado — Debes cargar tu archivo .db en cada ingreso</strong>
+        </div>
+        <div class="banner-details" id="statusDetails">
+          <span><strong>Privacidad (Ley N° 21.719):</strong> El servidor no almacena bases de datos ni datos personales. Tu archivo <code>.db</code> vive únicamente en tu computador.</span>
+          <a href="#legal" class="banner-link" id="openLegalTabLink">Ver Aviso Legal y Funcionamiento →</a>
+        </div>
+      </section>
+    </div>
+
+    <!-- PESTAÑA 2: AVISO LEGAL Y CÓMO FUNCIONA LA PLATAFORMA -->
+    <div id="homeTabLegal" class="home-tab-panel hidden">
+      <div class="legal-stack">
+        <!-- Bloque 1: Cómo funciona la plataforma -->
+        <section class="card legal-card">
+          <div class="legal-card-header">
+            <div class="card-icon upload-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+            </div>
+            <div>
+              <span class="panel-badge info">Arquitectura Local-First</span>
+              <h2>¿Cómo funciona esta plataforma?</h2>
+            </div>
+          </div>
+
+          <p class="card-desc">
+            A diferencia de los sistemas tradicionales en la nube, este gestor opera como un <strong>editor local de archivos SQLite (<code>.db</code>) ejecutado íntegramente dentro de tu navegador</strong> mediante tecnología WebAssembly (<code>sql.js</code>).
+          </p>
+
+          <div class="steps-grid">
+            <div class="step-item">
+              <span class="step-number">1</span>
+              <div>
+                <h3>Carga obligatoria en cada ingreso</h3>
+                <p>
+                  Cada vez que entras a la web, seleccionas tu archivo <code>.db</code> desde tu computador. El archivo se abre directamente en la memoria RAM de tu navegador; <strong>nunca se sube ni se transmite a ningún servidor</strong>.
+                </p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <span class="step-number">2</span>
+              <div>
+                <h3>Edición directa sobre tu archivo</h3>
+                <p>
+                  Al registrar ventas (POS), productos nuevos, ingresos de bodega, mermas o clientes, las consultas SQL y triggers se ejecutan en tu equipo y guardan los cambios directamente en tu archivo <code>.db</code> local (o te permiten descargarlo actualizado en un clic).
+                </p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <span class="step-number">3</span>
+              <div>
+                <h3>Cero rastro al cerrar la pestaña</h3>
+                <p>
+                  Cuando presionas <em>"Cerrar / Cambiar DB"</em> o cierras la ventana del navegador, la memoria temporal se vacía por completo. Ningún tercero puede ver ni descargar tu base de datos.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Bloque 2: Aviso Legal y Cumplimiento Ley 21.719 -->
+        <section class="card legal-card">
+          <div class="legal-card-header">
+            <div class="card-icon download-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+            <div>
+              <span class="panel-badge success-badge">Protección de Datos en Chile</span>
+              <h2>Aviso Legal y Cumplimiento de la Ley N° 21.719</h2>
+            </div>
+          </div>
+
+          <div class="legal-clauses">
+            <div class="legal-clause">
+              <h3>1. Privacidad desde el Diseño y por Defecto (Art. 14 quáter Ley N° 21.719)</h3>
+              <p>
+                En cumplimiento de la <strong>Ley N° 21.719</strong> (que regula la protección y el tratamiento de los datos personales y modifica la Ley N° 19.628 en Chile), esta plataforma ha sido diseñada bajo el principio de <em>Privacidad por Defecto</em>: el servidor web únicamente distribuye los archivos estáticos de la aplicación (HTML, CSS y motor WebAssembly) y <strong>no recolecta, no procesa, no almacena ni conserva bases de datos ni datos personales</strong> de ningún usuario.
+              </p>
+            </div>
+
+            <div class="legal-clause">
+              <h3>2. Titularidad y Responsabilidad sobre el Archivo <code>.db</code></h3>
+              <p>
+                El usuario o comercio (PYME) que utiliza esta herramienta conserva en todo momento la posesión física y exclusiva de su archivo <code>.db</code> en su propio computador o dispositivo. En consecuencia, el usuario actúa como único <strong>Responsable del Tratamiento</strong> respecto de los datos de clientes, proveedores o trabajadores que decida registrar dentro de su propio archivo local.
+              </p>
+            </div>
+
+            <div class="legal-clause">
+              <h3>3. Herramientas para Derechos ARSOP+ (Arts. 4 al 11 Ley N° 21.719)</h3>
+              <p>
+                Para facilitar que el usuario cumpla con las obligaciones de la Ley N° 21.719 frente a sus propios clientes, el módulo <strong>Clientes y Proveedores</strong> del panel incluye funciones locales para:
+              </p>
+              <ul class="legal-list">
+                <li><strong>Acceso y Portabilidad (Arts. 4 y 9):</strong> Descarga inmediata en formato <code>.json</code> estructurado con todos los datos registrados de un cliente y su historial de compras.</li>
+                <li><strong>Rectificación (Art. 5):</strong> Actualización y corrección inmediata de RUT, nombre, giro, teléfono, correo electrónico y dirección.</li>
+                <li><strong>Supresión / Eliminación (Art. 6):</strong> Borrado de los datos personales del titular en la tabla <code>clientes</code> sin alterar la cuadratura contable histórica de las ventas (las cuales pasan a <code>id_cliente = NULL</code>).</li>
+              </ul>
+            </div>
+
+            <div class="legal-clause">
+              <h3>4. Custodia y Copias de Respaldo (Backups)</h3>
+              <p>
+                Dado que esta plataforma <strong>no guarda ninguna copia de tu archivo <code>.db</code> en servidores externos</strong>, la pérdida, eliminación o daño del archivo en el computador del usuario no puede ser recuperada por la web. Se recomienda mantener copias de respaldo periódicas de tu archivo <code>.db</code> en una carpeta segura de tu equipo.
+              </p>
+            </div>
+          </div>
+
+          <div class="legal-footer-actions">
+            <button type="button" class="btn btn-primary" id="backToLoadTabBtn">
+              ← Volver a Cargar Archivo .db
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="/vendor/sql.js/sql-wasm.js"></script>
+  <script src="/local-sqlite.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
