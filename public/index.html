@@ -9,10 +9,10 @@
 <body>
   <div class="container">
     <header class="header">
-      <div class="badge">SQLite Local · Cumplimiento Ley N° 21.719 (Chile)</div>
+      <div class="badge">SQLite en tu navegador · Información de uso y privacidad</div>
       <h1>Gestor de Bases de Datos SQLite</h1>
       <p class="subtitle">
-        Tu archivo <code>.db</code> <strong>permanece exclusivamente en tu computador</strong>. La web solo edita tu archivo en el navegador y <strong>no guarda ninguna información en el servidor</strong>.
+        La aplicación abre y procesa una copia de tu base SQLite en el navegador. No envía el contenido de la base al servidor de la aplicación.
       </p>
 
       <!-- Navegación por Pestañas en la Pantalla de Inicio -->
@@ -22,6 +22,7 @@
           class="home-tab-btn active"
           role="tab"
           aria-selected="true"
+          aria-controls="homeTabCarga"
           data-home-tab="carga"
           id="tabBtnCarga"
         >
@@ -38,19 +39,37 @@
           class="home-tab-btn"
           role="tab"
           aria-selected="false"
+          aria-controls="homeTabFuncionamiento"
+          data-home-tab="funcionamiento"
+          id="tabBtnFuncionamiento"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+          Cómo funciona
+        </button>
+
+        <button
+          type="button"
+          class="home-tab-btn"
+          role="tab"
+          aria-selected="false"
+          aria-controls="homeTabLegal"
           data-home-tab="legal"
           id="tabBtnLegal"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
-          Aviso Legal y Cómo Funciona
+          Aviso legal y privacidad
         </button>
       </div>
     </header>
 
     <!-- PESTAÑA 1: CARGAR O CREAR ARCHIVO .DB -->
-    <div id="homeTabCarga" class="home-tab-panel">
+    <div id="homeTabCarga" class="home-tab-panel" role="tabpanel" aria-labelledby="tabBtnCarga">
       <main class="grid">
         <!-- Tarjeta 1: Cargar archivo .db local -->
         <section class="card">
@@ -63,14 +82,14 @@
           </div>
           <h2>Abrir archivo DB desde tu PC</h2>
           <p class="card-desc">
-            Cada vez que ingreses a la web, selecciona tu archivo <code>.db</code>, <code>.sqlite</code> o <code>.sqlite3</code> desde tu equipo para editarlo localmente.
+            Selecciona un archivo <code>.db</code>, <code>.sqlite</code> o <code>.sqlite3</code>. El navegador lee el archivo, verifica que tenga un encabezado SQLite válido y abre una copia local para trabajar; el contenido no se carga al servidor de la aplicación.
           </p>
 
           <form id="uploadForm" class="form">
             <label for="dbfile" class="dropzone" id="dropzone">
               <input type="file" id="dbfile" name="dbfile" accept=".db,.sqlite,.sqlite3" />
               <span class="dropzone-title" id="fileLabel">Haz clic o arrastra tu archivo .db aquí</span>
-              <span class="dropzone-hint">Ejecución 100% en tu navegador · 0 bytes enviados al servidor</span>
+              <span class="dropzone-hint">La base se procesa localmente en el navegador; no se envía al servidor de la aplicación.</span>
             </label>
 
             <button type="submit" class="btn btn-primary" id="uploadBtn">
@@ -92,7 +111,7 @@
           </div>
           <h2>Generar DB vacía en tu PC</h2>
           <p class="card-desc">
-            Crea al instante en tu propio navegador un archivo SQLite 3 con todas las tablas, índices y triggers del sistema listos para usar.
+            Genera y descarga en tu dispositivo una base SQLite con las tablas, índices y trigger incluidos en el esquema actual. Es una base vacía: no incluye usuarios, productos ni datos de ejemplo. Deberás volver a abrirla desde esta pantalla para comenzar a usarla.
           </p>
 
           <div class="form">
@@ -118,16 +137,16 @@
           <strong id="statusTitle">Sin archivo cargado — Debes cargar tu archivo .db en cada ingreso</strong>
         </div>
         <div class="banner-details" id="statusDetails">
-          <span><strong>Privacidad (Ley N° 21.719):</strong> El servidor no almacena bases de datos ni datos personales. Tu archivo <code>.db</code> vive únicamente en tu computador.</span>
-          <a href="#legal" class="banner-link" id="openLegalTabLink">Ver Aviso Legal y Funcionamiento →</a>
+          <span><strong>Procesamiento local:</strong> El contenido de la base se procesa en este navegador y no se envía al servidor de la aplicación.</span>
+          <a href="#funcionamiento" class="banner-link" id="openHowItWorksTabLink" data-home-tab="funcionamiento">Ver cómo funciona →</a>
+          <a href="#legal" class="banner-link" id="openLegalTabLink" data-home-tab="legal">Aviso legal y privacidad →</a>
         </div>
       </section>
     </div>
 
-    <!-- PESTAÑA 2: AVISO LEGAL Y CÓMO FUNCIONA LA PLATAFORMA -->
-    <div id="homeTabLegal" class="home-tab-panel hidden">
+    <!-- PESTAÑA 2: FUNCIONAMIENTO -->
+    <div id="homeTabFuncionamiento" class="home-tab-panel hidden" role="tabpanel" aria-labelledby="tabBtnFuncionamiento">
       <div class="legal-stack">
-        <!-- Bloque 1: Cómo funciona la plataforma -->
         <section class="card legal-card">
           <div class="legal-card-header">
             <div class="card-icon upload-icon">
@@ -138,22 +157,22 @@
               </svg>
             </div>
             <div>
-              <span class="panel-badge info">Arquitectura Local-First</span>
-              <h2>¿Cómo funciona esta plataforma?</h2>
+              <span class="panel-badge info">Flujo de trabajo</span>
+              <h2>Cómo funciona el programa</h2>
             </div>
           </div>
 
           <p class="card-desc">
-            A diferencia de los sistemas tradicionales en la nube, este gestor opera como un <strong>editor local de archivos SQLite (<code>.db</code>) ejecutado íntegramente dentro de tu navegador</strong> mediante tecnología WebAssembly (<code>sql.js</code>).
+            El navegador ejecuta SQLite mediante <code>sql.js</code> y WebAssembly. Express entrega la interfaz y los recursos de la aplicación; las operaciones y consultas de negocio se ejecutan en el navegador.
           </p>
 
           <div class="steps-grid">
             <div class="step-item">
               <span class="step-number">1</span>
               <div>
-                <h3>Carga obligatoria en cada ingreso</h3>
+                <h3>Selecciona o crea la base</h3>
                 <p>
-                  Cada vez que entras a la web, seleccionas tu archivo <code>.db</code> desde tu computador. El archivo se abre directamente en la memoria RAM de tu navegador; <strong>nunca se sube ni se transmite a ningún servidor</strong>.
+                  Selecciona un archivo <code>.db</code>, <code>.sqlite</code> o <code>.sqlite3</code>. La aplicación comprueba su encabezado SQLite y abre sus bytes en el navegador. También puedes generar una base nueva con el esquema del proyecto; esa base inicialmente no contiene registros.
                 </p>
               </div>
             </div>
@@ -161,9 +180,9 @@
             <div class="step-item">
               <span class="step-number">2</span>
               <div>
-                <h3>Edición directa sobre tu archivo</h3>
+                <h3>Trabaja en los módulos disponibles</h3>
                 <p>
-                  Al registrar ventas (POS), productos nuevos, ingresos de bodega, mermas o clientes, las consultas SQL y triggers se ejecutan en tu equipo y guardan los cambios directamente en tu archivo <code>.db</code> local (o te permiten descargarlo actualizado en un clic).
+                  El panel contiene Inicio, Inventario, Registro de Ventas, Gestión de Stock y Mermas, Clientes y Proveedores, y Finanzas. Las operaciones usan las tablas existentes de la base; algunas funciones requieren que esta tenga el esquema esperado por el sistema.
                 </p>
               </div>
             </div>
@@ -171,16 +190,51 @@
             <div class="step-item">
               <span class="step-number">3</span>
               <div>
-                <h3>Cero rastro al cerrar la pestaña</h3>
+                <h3>Guarda los cambios en tu dispositivo</h3>
                 <p>
-                  Cuando presionas <em>"Cerrar / Cambiar DB"</em> o cierras la ventana del navegador, la memoria temporal se vacía por completo. Ningún tercero puede ver ni descargar tu base de datos.
+                  Si abriste el archivo con acceso de escritura compatible y concediste permiso, las operaciones guardadas pueden escribir los cambios en ese archivo. Si no, usa <strong>Descargar .db</strong> en el panel para guardar la versión actualizada. Revisa el modo indicado por la aplicación y conserva respaldos.
+                </p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <span class="step-number">4</span>
+              <div>
+                <h3>Cierra la sesión al terminar</h3>
+                <p>
+                  Usa <strong>Cerrar / Cambiar DB</strong> para cerrar la base activa y limpiar la sesión local administrada por la aplicación. Al entrar de nuevo a la pantalla inicial se exige seleccionar una base nuevamente. El cierre de la pestaña por sí solo no garantiza que el navegador elimine inmediatamente todos sus datos locales. Esto tampoco sustituye el cierre de sesión del sistema operativo ni garantiza el borrado forense del dispositivo.
                 </p>
               </div>
             </div>
           </div>
+
+          <div class="legal-clauses">
+            <div class="legal-clause">
+              <h3>Qué incluye y qué no incluye</h3>
+              <ul class="legal-list">
+                <li>Ventas, productos, movimientos de inventario, clientes y reportes financieros se guardan en la base SQLite local.</li>
+                <li>La opción Compras aún no tiene una pantalla para registrar compras. Finanzas puede resumir compras que ya existan en la base.</li>
+                <li>Los nombres BOLETA y FACTURA son tipos de registro interno: el programa no emite documentos tributarios electrónicos ni se conecta al SII.</li>
+                <li>El esquema contempla roles, pero la aplicación no implementa autenticación ni aplica permisos por rol.</li>
+              </ul>
+            </div>
+          </div>
         </section>
 
-        <!-- Bloque 2: Aviso Legal y Cumplimiento Ley 21.719 -->
+        <div class="legal-footer-actions">
+          <button type="button" class="btn btn-primary backToLoadTabBtn">
+            ← Volver a Cargar / Crear Archivo .db
+          </button>
+          <button type="button" class="btn btn-secondary" data-home-tab="legal">
+            Leer aviso legal y privacidad
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PESTAÑA 3: AVISO LEGAL Y PRIVACIDAD -->
+    <div id="homeTabLegal" class="home-tab-panel hidden" role="tabpanel" aria-labelledby="tabBtnLegal">
+      <div class="legal-stack">
         <section class="card legal-card">
           <div class="legal-card-header">
             <div class="card-icon download-icon">
@@ -189,49 +243,63 @@
               </svg>
             </div>
             <div>
-              <span class="panel-badge success-badge">Protección de Datos en Chile</span>
-              <h2>Aviso Legal y Cumplimiento de la Ley N° 21.719</h2>
+              <span class="panel-badge success-badge">Información importante</span>
+              <h2>Aviso legal, privacidad y responsabilidades</h2>
             </div>
           </div>
 
+          <p class="card-desc">
+            Este aviso describe el funcionamiento previsto de esta aplicación. No es asesoría legal, una auditoría de seguridad ni una certificación de cumplimiento de la Ley N° 19.628 o de la Ley N° 21.719, que modifica el régimen chileno de protección de datos personales.
+          </p>
+
           <div class="legal-clauses">
             <div class="legal-clause">
-              <h3>1. Privacidad desde el Diseño y por Defecto (Art. 14 quáter Ley N° 21.719)</h3>
+              <h3>1. Qué datos procesa la aplicación</h3>
               <p>
-                En cumplimiento de la <strong>Ley N° 21.719</strong> (que regula la protección y el tratamiento de los datos personales y modifica la Ley N° 19.628 en Chile), esta plataforma ha sido diseñada bajo el principio de <em>Privacidad por Defecto</em>: el servidor web únicamente distribuye los archivos estáticos de la aplicación (HTML, CSS y motor WebAssembly) y <strong>no recolecta, no procesa, no almacena ni conserva bases de datos ni datos personales</strong> de ningún usuario.
+                La aplicación está diseñada para no enviar el contenido de tu base SQLite al servidor web: el archivo se abre y las consultas se ejecutan en el navegador. Durante el uso, el navegador mantiene datos de la sesión local, incluida una copia de trabajo en IndexedDB que la aplicación usa para conservar y restaurar la sesión de la pestaña. Cerrar la pestaña no garantiza que el navegador elimine de inmediato esos datos. El proveedor del servidor o de la red podría registrar metadatos técnicos de conexión (por ejemplo, solicitudes o dirección IP); eso es distinto del contenido de la base y depende de la infraestructura donde se aloje el sitio.
               </p>
             </div>
 
             <div class="legal-clause">
-              <h3>2. Titularidad y Responsabilidad sobre el Archivo <code>.db</code></h3>
+              <h3>2. Permisos, escritura y copias</h3>
               <p>
-                El usuario o comercio (PYME) que utiliza esta herramienta conserva en todo momento la posesión física y exclusiva de su archivo <code>.db</code> en su propio computador o dispositivo. En consecuencia, el usuario actúa como único <strong>Responsable del Tratamiento</strong> respecto de los datos de clientes, proveedores o trabajadores que decida registrar dentro de su propio archivo local.
+                La lectura y la escritura directa dependen del navegador, del método usado para abrir el archivo y de los permisos concedidos. Si no hay escritura directa disponible, debes descargar la base actualizada y guardarla manualmente. El uso de la aplicación no crea por sí mismo un respaldo ni garantiza recuperación ante pérdida, daño, sobrescritura, fallos del navegador o del dispositivo. Conserva copias de seguridad y verifica que puedas abrirlas.
               </p>
             </div>
 
             <div class="legal-clause">
-              <h3>3. Herramientas para Derechos ARSOP+ (Arts. 4 al 11 Ley N° 21.719)</h3>
+              <h3>3. Responsabilidad sobre los datos personales</h3>
               <p>
-                Para facilitar que el usuario cumpla con las obligaciones de la Ley N° 21.719 frente a sus propios clientes, el módulo <strong>Clientes y Proveedores</strong> del panel incluye funciones locales para:
+                Quien decide registrar datos personales debe determinar y documentar, según corresponda, la base legal y finalidad del tratamiento, informar a las personas, limitar los datos recopilados, mantenerlos seguros y atender solicitudes de sus titulares conforme a la normativa aplicable. La disponibilidad de funciones de edición, exportación o eliminación no asegura por sí sola el cumplimiento de esos deberes. Evalúa también quién puede acceder al equipo y al archivo, y aplica controles y respaldos apropiados.
+              </p>
+            </div>
+
+            <div class="legal-clause">
+              <h3>4. Alcance de las herramientas para clientes</h3>
+              <p>
+                El módulo de clientes ofrece funciones locales que pueden apoyar la gestión de solicitudes, pero no sustituyen un procedimiento legal ni cubren necesariamente todos los datos o registros relacionados. En particular:
               </p>
               <ul class="legal-list">
-                <li><strong>Acceso y Portabilidad (Arts. 4 y 9):</strong> Descarga inmediata en formato <code>.json</code> estructurado con todos los datos registrados de un cliente y su historial de compras.</li>
-                <li><strong>Rectificación (Art. 5):</strong> Actualización y corrección inmediata de RUT, nombre, giro, teléfono, correo electrónico y dirección.</li>
-                <li><strong>Supresión / Eliminación (Art. 6):</strong> Borrado de los datos personales del titular en la tabla <code>clientes</code> sin alterar la cuadratura contable histórica de las ventas (las cuales pasan a <code>id_cliente = NULL</code>).</li>
+                <li>La exportación JSON incluye la ficha del cliente y los datos resumidos de sus ventas asociadas; no equivale a una exportación completa de todos los datos que pudieran existir en otras tablas o respaldos.</li>
+                <li>La eliminación borra la ficha de <code>clientes</code> y desvincula las ventas mediante la relación configurada en la base; no borra automáticamente copias descargadas, otros archivos ni datos mantenidos fuera de esta aplicación.</li>
+                <li>Confirma la identidad, el alcance de la solicitud y las obligaciones de conservación antes de modificar o eliminar registros.</li>
               </ul>
             </div>
 
             <div class="legal-clause">
-              <h3>4. Custodia y Copias de Respaldo (Backups)</h3>
+              <h3>5. Seguridad y límites</h3>
               <p>
-                Dado que esta plataforma <strong>no guarda ninguna copia de tu archivo <code>.db</code> en servidores externos</strong>, la pérdida, eliminación o daño del archivo en el computador del usuario no puede ser recuperada por la web. Se recomienda mantener copias de respaldo periódicas de tu archivo <code>.db</code> en una carpeta segura de tu equipo.
+                El procesamiento local reduce la transmisión del contenido de la base, pero no elimina los riesgos del equipo, navegador, extensiones, malware, acceso físico, alojamiento del sitio o redes compartidas. Mantén el navegador y el sistema actualizados, restringe el acceso al dispositivo y no uses equipos no confiables para datos sensibles.
               </p>
             </div>
           </div>
 
           <div class="legal-footer-actions">
-            <button type="button" class="btn btn-primary" id="backToLoadTabBtn">
-              ← Volver a Cargar Archivo .db
+            <button type="button" class="btn btn-primary backToLoadTabBtn">
+              ← Volver a Cargar / Crear Archivo .db
+            </button>
+            <button type="button" class="btn btn-secondary" data-home-tab="funcionamiento">
+              Ver cómo funciona
             </button>
           </div>
         </section>

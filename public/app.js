@@ -12,41 +12,46 @@ const statusDot = document.getElementById('statusDot');
 const statusTitle = document.getElementById('statusTitle');
 const statusDetails = document.getElementById('statusDetails');
 
-// Controles de pestañas en pantalla de inicio (Cargar Archivo vs Aviso Legal y Funcionamiento)
-const tabBtnCarga = document.getElementById('tabBtnCarga');
-const tabBtnLegal = document.getElementById('tabBtnLegal');
-const homeTabCarga = document.getElementById('homeTabCarga');
-const homeTabLegal = document.getElementById('homeTabLegal');
-const backToLoadTabBtn = document.getElementById('backToLoadTabBtn');
+// Pestañas de carga, funcionamiento y aviso legal en la pantalla de inicio.
+const homeTabButtons = document.querySelectorAll('.home-tabs [data-home-tab]');
+const homeTabPanels = {
+  carga: document.getElementById('homeTabCarga'),
+  funcionamiento: document.getElementById('homeTabFuncionamiento'),
+  legal: document.getElementById('homeTabLegal'),
+};
+const backToLoadTabBtns = document.querySelectorAll('.backToLoadTabBtn');
 
 let selectedFileHandle = null;
 let selectedFileObject = null;
 
 function switchHomeTab(tabName) {
-  const isLegal = tabName === 'legal';
+  const activePanel = homeTabPanels[tabName];
+  if (!activePanel) return;
 
-  tabBtnCarga.classList.toggle('active', !isLegal);
-  tabBtnCarga.setAttribute('aria-selected', isLegal ? 'false' : 'true');
+  homeTabButtons.forEach((button) => {
+    const isActive = button.dataset.homeTab === tabName;
+    button.classList.toggle('active', isActive);
+    button.setAttribute('aria-selected', String(isActive));
+  });
 
-  tabBtnLegal.classList.toggle('active', isLegal);
-  tabBtnLegal.setAttribute('aria-selected', isLegal ? 'true' : 'false');
-
-  homeTabCarga.classList.toggle('hidden', isLegal);
-  homeTabLegal.classList.toggle('hidden', !isLegal);
+  Object.entries(homeTabPanels).forEach(([name, panel]) => {
+    panel.classList.toggle('hidden', name !== tabName);
+  });
 }
 
-tabBtnCarga.addEventListener('click', () => switchHomeTab('carga'));
-tabBtnLegal.addEventListener('click', () => switchHomeTab('legal'));
-if (backToLoadTabBtn) {
-  backToLoadTabBtn.addEventListener('click', () => switchHomeTab('carga'));
-}
+homeTabButtons.forEach((button) => {
+  button.addEventListener('click', () => switchHomeTab(button.dataset.homeTab));
+});
 
 document.addEventListener('click', (e) => {
-  const link = e.target.closest('#openLegalTabLink');
-  if (link) {
-    e.preventDefault();
-    switchHomeTab('legal');
-  }
+  const control = e.target.closest('a[data-home-tab], .legal-footer-actions button[data-home-tab]');
+  if (!control) return;
+  if (control.tagName === 'A') e.preventDefault();
+  switchHomeTab(control.dataset.homeTab);
+});
+
+backToLoadTabBtns.forEach((button) => {
+  button.addEventListener('click', () => switchHomeTab('carga'));
 });
 
 function formatBytes(bytes) {
@@ -62,8 +67,9 @@ function updateActiveDbBanner(db) {
     statusDot.classList.remove('active');
     statusTitle.textContent = 'Sin archivo cargado — Debes cargar tu archivo .db en cada ingreso';
     statusDetails.innerHTML = `
-      <span><strong>Privacidad (Ley N° 21.719):</strong> El servidor no almacena bases de datos ni datos personales. Tu archivo <code>.db</code> vive únicamente en tu computador.</span>
-      <a href="#legal" class="banner-link" id="openLegalTabLink">Ver Aviso Legal y Funcionamiento →</a>
+      <span><strong>Procesamiento local:</strong> El contenido de la base se procesa en este navegador y no se envía al servidor de la aplicación.</span>
+      <a href="#funcionamiento" class="banner-link" data-home-tab="funcionamiento">Ver cómo funciona →</a>
+      <a href="#legal" class="banner-link" data-home-tab="legal">Aviso legal y privacidad →</a>
     `;
     return;
   }
@@ -88,8 +94,7 @@ function updateActiveDbBanner(db) {
   `;
 }
 
-// Regla estricta: Cada vez que el usuario ingresa a la pantalla de inicio (/),
-// se limpia cualquier sesión previa en memoria para exigir cargar el archivo .db nuevamente.
+// Cada ingreso a la pantalla inicial limpia la sesión previa y exige seleccionar una base de nuevo.
 async function resetSessionOnEntry() {
   try {
     await window.LocalSqliteEngine.clearSession();

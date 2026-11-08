@@ -1,162 +1,132 @@
-# Gestor SQLite PIME — Sistema POS, Inventario y Kardex (100% Local-First)
+# Gestor SQLite PIME
 
-![SQLite 3](https://img.shields.io/badge/SQLite-3%20(WebAssembly)-003B57?style=flat-square&logo=sqlite&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-Express%20Static-339933?style=flat-square&logo=nodedotjs&logoColor=white)
-![Arquitectura](https://img.shields.io/badge/Arquitectura-100%25%20Client--Side-2563EB?style=flat-square)
-![Privacidad](https://img.shields.io/badge/Ley%20N%C2%B0%2021.719%20(Chile)-Privacidad%20por%20Defecto-10B981?style=flat-square)
+Aplicación local para administrar ventas, productos e inventario de una pequeña empresa usando archivos SQLite. El motor `sql.js` (SQLite compilado a WebAssembly) se ejecuta en el navegador; Express sirve los archivos de la aplicación y no recibe la base de datos.
 
-Plataforma web de **Punto de Venta (POS), Control de Inventario y Kardex Inmutable** diseñada para PYMEs que opera **100% en el navegador del usuario** mediante tecnología WebAssembly (`sql.js`) y `File System Access API`.
+## Contenido
 
-Tu archivo de base de datos (`.db`, `.sqlite` o `.sqlite3`) permanece exclusivamente en tu computador: **el servidor web solo entrega los archivos estáticos de la aplicación y jamás recibe, procesa ni almacena bases de datos ni datos personales**.
+- [Funciones disponibles](#funciones-disponibles)
+- [Almacenamiento y privacidad](#almacenamiento-y-privacidad)
+- [Arquitectura e integridad de datos](#arquitectura-e-integridad-de-datos)
+- [Esquema de la base de datos](#esquema-de-la-base-de-datos)
+- [Estructura del proyecto](#estructura-del-proyecto)
+- [Requisitos y ejecución](#requisitos-y-ejecución)
+- [Uso básico](#uso-básico)
+- [Alcance actual](#alcance-actual)
 
----
+## Funciones disponibles
 
-## Tabla de Contenidos
+- **Abrir y crear bases SQLite:** carga archivos `.db`, `.sqlite` y `.sqlite3`, o genera una base vacía con el esquema del sistema.
+- **Panel de inicio:** muestra indicadores y gráficos de ventas, alertas de stock, productos más vendidos y ventas recientes.
+- **Inventario:** consulta y busca productos; presenta alertas de stock bajo, artículos de baja rotación y rankings de venta.
+- **Ventas (POS):** busca productos por nombre, SKU o código de barras, arma la venta, permite descuentos y registra documentos internos (`BOLETA`, `FACTURA` o `TICKET_INTERNO`) y pagos.
+- **Productos y movimientos de stock:** permite crear productos con stock inicial, registrar entradas, devoluciones, ajustes, mermas y consultar movimientos recientes.
+- **Clientes:** permite registrar, buscar y rectificar fichas; exportar los datos del cliente y su historial de ventas a JSON; y eliminar su ficha sin borrar las ventas históricas asociadas.
+- **Proveedores:** muestra y permite buscar proveedores existentes en la base.
+- **Finanzas:** resume ingresos, egresos, costos de ventas, IVA y pérdidas por mermas en períodos de 1, 3, 6 o 12 meses.
 
-1. [Características Principales](#-características-principales)
-2. [Cumplimiento Legal y Privacidad (Ley N° 21.719 - Chile)](#-cumplimiento-legal-y-privacidad-ley-n-21719---chile)
-3. [Arquitectura y Reglas de Integridad SQLite](#-arquitectura-y-reglas-de-integridad-sqlite)
-4. [Esquema de Base de Datos](#-esquema-de-base-de-datos)
-5. [Estructura del Proyecto](#-estructura-del-proyecto)
-6. [Requisitos e Instalación](#-requisitos-e-instalación)
-7. [Flujo de Trabajo Recomendado](#-flujo-de-trabajo-recomendado)
+Las cantidades de inventario usan unidades de medida como `UN`, `KG`, `LT`, `MT` y `CAJA`. Los precios y reportes están orientados a pesos chilenos (CLP).
 
----
+## Almacenamiento y privacidad
 
-## Características Principales
+- Las consultas y operaciones SQLite se ejecutan en el navegador. El servidor Express entrega los recursos estáticos y los archivos de `sql.js`; no hay una API de carga de bases de datos.
+- La aplicación mantiene una copia de trabajo local en el navegador durante la sesión. Al volver a la pantalla de inicio o cerrar la sesión desde el panel, elimina esa sesión local.
+- En navegadores compatibles, y con el permiso correspondiente, los cambios pueden escribirse directamente en el archivo seleccionado. En caso contrario, se puede descargar una copia actualizada desde el panel.
+- El archivo original no se modifica al abrirlo. Aun así, mantén respaldos antes de operar sobre bases importantes.
 
-### 1. Gestión Local de Archivos `.db`
-- **Apertura directa desde tu PC:** Carga cualquier archivo `.db`, `.sqlite` o `.sqlite3` en la memoria local del navegador. En navegadores compatibles con *File System Access API*, los cambios se guardan directamente sobre el archivo físico de tu disco.
-- **Generador de Base de Datos Vacía:** Crea y descarga al instante un archivo SQLite 3 con el esquema completo, restricciones `CHECK`, índices de rendimiento y triggers listos para producción.
+El diseño evita enviar la base de datos al servidor, pero esto por sí solo no constituye una certificación de cumplimiento legal ni reemplaza las obligaciones de quien trata los datos. Consulta el aviso disponible en la pantalla inicial.
 
-### 2. Panel de Inicio (Dashboard Operativo)
-- **KPIs en Tiempo Real:** Ventas del día, ventas acumuladas del mes, ingresos históricos, utilidad estimada (basada en costos históricos congelados) y conteo de productos críticos.
-- **Alertas y Rankings:** Listado de productos con stock bajo o agotado, ranking Top 10 de productos más vendidos y registro de las últimas ventas emitidas.
+## Arquitectura e integridad de datos
 
-### 3. Catálogo y Buscador Avanzado de Inventario
-- **Stock de Urgencia:** Cálculo automático de déficit de unidades y costo estimado de reposición.
-- **Artículos de Baja Rotación:** Identificación de stock inmovilizado cruzado con su última fecha y referencia de ingreso en Kardex.
-- **Buscador Parametrizado:** Filtros combinados por nombre, SKU, código de barras, categoría, unidad de medida (`UN`, `KG`, `LT`, `MT`, `CAJA`) y estado (`Activo` / `Inactivo`).
+- **Interfaz:** HTML, CSS y módulos JavaScript nativos; las secciones del panel se cargan desde plantillas.
+- **Persistencia local:** `sql.js` ejecuta SQLite en WebAssembly. El archivo se abre en el navegador y puede exportarse de nuevo a disco.
+- **Servidor:** Express entrega archivos estáticos, comprime recursos con Brotli/Gzip y establece cabeceras de seguridad.
+- **Relaciones:** el motor activa `PRAGMA foreign_keys = ON`.
+- **Stock:** el trigger `trg_actualizar_stock_kardex`, al insertar un movimiento, actualiza el stock del producto usando el stock resultante del movimiento. Las operaciones de negocio registran los cambios mediante movimientos de inventario.
+- **Ventas:** el detalle conserva el precio y costo unitarios históricos; las ventas incluyen pagos asociados y admiten registrar más de un medio de pago.
+- **Rendimiento:** el esquema incluye índices para búsquedas de productos, ventas, pagos y movimientos de inventario.
 
-### 4. Punto de Venta (POS) y Facturación
-- **Búsqueda Rápida y Lector de Código de Barras:** Agrega productos al carrito mediante coincidencia exacta de SKU/código de barras o búsqueda interactiva.
-- **Descuentos Flexibles:** Soporte para descuentos por línea (`descuento_linea`) y descuento sobre el total de la venta (`descuento_global`) tanto en monto fijo (`$ CLP`) como en porcentaje (`%`).
-- **Congelamiento Contable:** Cada línea vendida congela automáticamente el `precio_unitario_venta` y el `costo_unitario_historico` vigentes al momento de la operación.
-- **Documentos y Medios de Pago:** Emisión de `BOLETA`, `FACTURA` y `TICKET_INTERNO` con medios de pago `EFECTIVO`, `DEBITO`, `CREDITO`, `TRANSFERENCIA` y `CREDITO_INTERNO`.
+## Esquema de la base de datos
 
-### 5. Gestión de Productos, Entradas de Stock y Mermas (Kardex Inmutable)
-- **Creación de Productos con Stock Inicial:** Alta de artículos y categorías con registro automático de movimiento inicial en Kardex.
-- **Abastecimiento y Bajas:** Registro auditado de `ENTRADA_COMPRA`, `AJUSTE_POSITIVO`, `DEVOLUCION_CLIENTE`, `MERMA`, `AJUSTE_NEGATIVO` y `DEVOLUCION_PROVEEDOR`.
+El esquema inicial de `public/js/db/schema.js` define estas tablas:
 
-### 6. Directorio de Clientes y Derechos del Titular (ARSOP+)
-- **Vista Ágil:** Muestra por defecto los **últimos 5 clientes** registrados junto con su resumen de compras históricas.
-- **Buscador en Tiempo Real:** Filtra clientes instantáneamente por nombre, razón social, RUT, giro, teléfono, correo o dirección.
-- **Edición y Derechos ARSOP+:**
-  - **Editar / Rectificar (Art. 5):** Carga inmediata de los datos del cliente en el formulario para su actualización.
-  - **Portabilidad JSON (Arts. 4 y 9):** Exportación descargable en formato `.json` con la ficha del titular y su historial de transacciones.
-  - **Supresión (Art. 6):** Eliminación de los datos personales del cliente manteniendo intacta la cuadratura contable histórica (`ON DELETE SET NULL` en `ventas.id_cliente`).
+| Tabla | Propósito |
+| --- | --- |
+| `usuarios` | Operadores y roles (`ADMIN`, `CAJERO`, `BODEGUERO`). |
+| `categorias` | Clasificación de productos. |
+| `proveedores` | Datos de contacto de proveedores. |
+| `clientes` | Datos de clientes. |
+| `productos` | Catálogo, precios, costos, unidad y stock actual. |
+| `compras` | Cabecera de compras recibidas o anuladas. |
+| `detalle_compras` | Productos y cantidades asociados a una compra. |
+| `ventas` | Cabecera, totales y estado de cada venta. |
+| `detalle_ventas` | Productos, cantidades y valores históricos de cada venta. |
+| `pagos_venta` | Medios, montos y referencias de pago. |
+| `movimientos_inventario` | Entradas, salidas, ajustes, devoluciones y mermas. |
 
----
+Al abrir una base existente, la aplicación activa las claves foráneas e intenta agregar índices de rendimiento para las tablas que encuentra.
 
-## Cumplimiento Legal y Privacidad (Ley N° 21.719 - Chile)
-
-Esta plataforma aplica el principio de **Privacidad desde el Diseño y por Defecto** (*Art. 14 quáter de la Ley N° 21.719* que modifica la Ley N° 19.628 sobre Protección de la Vida Privada en Chile):
-
-1. **Cero Almacenamiento en Servidor:** El servidor Node.js/Express actúa exclusivamente como servidor de archivos estáticos con cabeceras de seguridad (`Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`).
-2. **Procesamiento Local en RAM:** Todas las consultas SQL se ejecutan localmente en el navegador del cliente mediante WebAssembly (`sql-wasm.wasm`).
-3. **Limpieza Efímera:** Al cerrar la sesión o la pestaña del navegador, la memoria temporal se purga por completo.
-
----
-
-## Arquitectura y Reglas de Integridad SQLite
-
-El motor de datos ([`public/local-sqlite.js`](file:///c:/Users/kuro_/OneDrive/Documents/proyectos/base_sqlite_PIME/public/local-sqlite.js)) hace cumplir reglas estrictas de integridad relacional:
-
-1. **PRAGMAs Activos:** Ejecución obligatoria de `PRAGMA foreign_keys = ON;` en toda conexión.
-2. **Prohibición de modificar `stock_actual` directamente:** Ninguna operación ejecuta `UPDATE productos SET stock_actual = ...` de forma manual. Toda variación de inventario se registra insertando una fila en `movimientos_inventario`, disparando el trigger `trg_actualizar_stock_kardex`.
-3. **Transacciones Atómicas (`BEGIN TRANSACTION` ... `COMMIT` / `ROLLBACK`):** Las ventas, compras, altas con stock inicial y ajustes se ejecutan de manera atómica garantizando consistencia entre cabeceras, detalles, pagos y kardex.
-4. **Soporte de Venta a Granel:** Las columnas de stock y cantidades utilizan tipo `REAL` con restricción `CHECK (cantidad > 0)`.
-
----
-
-## Esquema de Base de Datos
-
-| Tabla | Descripción Principal | Clave Primaria |
-| :--- | :--- | :--- |
-| `usuarios` | Operadores del sistema (`ADMIN`, `CAJERO`, `BODEGUERO`) | `id_usuario` |
-| `categorias` | Clasificación del catálogo de productos | `id_categoria` |
-| `proveedores` | Directorio de proveedores con RUT único y contacto | `id_proveedor` |
-| `clientes` | Directorio de clientes con soporte ARSOP+ | `id_cliente` |
-| `productos` | Catálogo maestro con costos, precios, IVA y stock | `id_producto` |
-| `compras` | Cabecera de facturas, boletas y guías de proveedores | `id_compra` |
-| `detalle_compras` | Líneas de productos ingresados por compra | `id_detalle_compra` |
-| `ventas` | Cabecera de ventas (`BOLETA`, `FACTURA`, `TICKET_INTERNO`) | `id_venta` |
-| `detalle_ventas` | Ítems vendidos con costo y precio histórico congelado | `id_detalle_venta` |
-| `pagos_venta` | Registro de cobros y referencias de transacción | `id_pago` |
-| `movimientos_inventario` | Kardex inmutable de entradas, salidas, ajustes y mermas | `id_movimiento` |
-
-### Trigger e Índices Activos
-- **Trigger `trg_actualizar_stock_kardex`**: `AFTER INSERT ON movimientos_inventario` → sincroniza `productos.stock_actual = NEW.stock_resultante` y `actualizado_en = CURRENT_TIMESTAMP`.
-- **Índices**:
-  - `idx_productos_busqueda (nombre, sku, codigo_barras)`
-  - `idx_ventas_fecha (fecha_venta, estado)`
-  - `idx_detalle_ventas_prod (id_producto)`
-  - `idx_kardex_producto_fecha (id_producto, fecha)`
-
----
-
-## Estructura del Proyecto
+## Estructura del proyecto
 
 ```text
 base_sqlite_PIME/
 ├── public/
-│   ├── index.html          # Pantalla de inicio: carga/creación de .db y aviso legal Ley 21.719
-│   ├── dashboard.html      # Interfaz principal ERP (Dashboard, Inventario, POS, Kardex, Clientes)
-│   ├── styles.css          # Hoja de estilos moderna (Dark UI responsiva)
-│   ├── local-sqlite.js     # Motor SQLite WebAssembly client-side y transacciones de negocio
-│   ├── app.js              # Lógica de la pantalla de inicio y carga de archivos
-│   └── dashboard.js        # Controladores de interfaz para todos los módulos del ERP
+│   ├── index.html                 # Inicio: abrir o crear una base y consultar el aviso
+│   ├── app.js                     # Flujo de carga de archivos de la pantalla inicial
+│   ├── dashboard.html             # Contenedor del panel modular
+│   ├── dashboard.js               # Archivo anterior; dashboard.html usa js/dashboard.js
+│   ├── local-sqlite.js            # Fachada del motor SQLite para la pantalla inicial y el panel
+│   ├── styles.css                 # Estilos de la aplicación
+│   ├── js/
+│   │   ├── dashboard.js           # Orquestación e inicialización del panel
+│   │   ├── components/
+│   │   │   ├── navbar.js           # Navegación, descarga y cierre de sesión
+│   │   │   └── template-loader.js  # Carga de plantillas HTML
+│   │   ├── db/
+│   │   │   ├── constants.js
+│   │   │   ├── engine.js           # SQLite local, sesión y operaciones comunes
+│   │   │   ├── schema.js           # Esquema, trigger e índices
+│   │   │   └── repositories/       # Consultas y operaciones por dominio
+│   │   ├── modules/                # Inicio, inventario, ventas, Kardex, clientes y finanzas
+│   │   └── utils/
+│   │       └── formatters.js
+│   └── templates/                 # Plantillas de navegación y secciones del panel
 ├── src/
-│   └── server.js           # Servidor Express estático con cabeceras de seguridad
-├── .gitignore              # Reglas de exclusión para Git (.db, -wal, -shm, node_modules, etc.)
-├── package.json            # Configuración de scripts y dependencias (express, sql.js)
-└── README.md               # Documentación técnica del proyecto
+│   └── server.js                  # Servidor estático Express
+├── package.json
+└── README.md
 ```
 
----
+## Requisitos y ejecución
 
-## Requisitos e Instalación
+- Node.js 18.11 o superior (el modo de desarrollo usa `node --watch`).
+- npm.
+- Un navegador moderno. El acceso a archivos y la escritura directa dependen del soporte del navegador; cuando no están disponibles, se puede usar el selector estándar y descargar la base actualizada.
 
-### Requisitos Previos
-- **Node.js** v18.0.0 o superior.
-- **npm** v9.0.0 o superior.
-- Navegador web moderno (Chrome, Edge, Brave, Firefox o Safari).
+Desde la raíz del proyecto:
 
-### Pasos de Instalación
+```bash
+npm install
+npm run dev
+```
 
-1. **Instalar dependencias:**
-   ```bash
-   npm install
-   ```
+Para iniciar sin el modo de recarga:
 
-2. **Iniciar en modo desarrollo (con recarga automática):**
-   ```bash
-   npm run dev
-   ```
+```bash
+npm start
+```
 
-3. **Iniciar en modo producción:**
-   ```bash
-   npm start
-   ```
+Abre `http://localhost:3000`. El puerto se puede cambiar con la variable de entorno `PORT`.
 
-4. **Abrir en el navegador:**
-   Ingresa a `http://localhost:3000` (o el puerto definido en la variable de entorno `PORT`).
+## Uso básico
 
----
+1. En la pantalla inicial, selecciona una base `.db`, `.sqlite` o `.sqlite3`, o descarga una base nueva.
+2. Abre el panel y trabaja en las secciones disponibles.
+3. Usa **Descargar .db** para guardar una copia actualizada. Si el navegador permitió vincular el archivo con acceso de escritura, los cambios de las operaciones compatibles se guardan directamente; comprueba el estado mostrado por la aplicación.
+4. Cierra la sesión o vuelve al inicio antes de cambiar de base.
 
-## Flujo de Trabajo Recomendado
+## Alcance actual
 
-1. **Al iniciar el turno:** Abre `http://localhost:3000` y selecciona tu archivo `.db` desde tu computador (o genera uno nuevo desde la tarjeta *"Generar DB vacía en tu PC"*).
-2. **Operación diaria:** Registra ventas en **Registro de Ventas**, abastecimientos o mermas en **Gestión de Stock y Mermas**, y administra tu cartera en **Clientes y Proveedores**.
-3. **Respaldo seguro:** Si tu navegador opera en modo memoria local o deseas conservar una copia adicional al finalizar el día, haz clic en el botón **"Descargar .db"** de la barra superior y guarda una copia de respaldo periódica en una carpeta segura.
-
+- La opción **Compras** del menú todavía muestra una pantalla de marcador de posición. Aunque existen tablas de compras y Finanzas puede leer esos registros, actualmente no hay una pantalla para registrar compras.
+- Los tipos de documento de venta son etiquetas de registro interno; el sistema no emite documentos tributarios electrónicos ni se integra con el SII.
+- Los roles están definidos en el esquema, pero el proyecto no implementa inicio de sesión ni control de acceso por rol.
+- La base generada contiene el esquema y los índices; no incluye datos de ejemplo.
