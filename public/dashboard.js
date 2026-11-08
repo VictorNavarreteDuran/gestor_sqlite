@@ -42,6 +42,7 @@ const sectionInventario = document.getElementById('section-inventario');
 const sectionVentas = document.getElementById('section-ventas');
 const sectionKardex = document.getElementById('section-kardex');
 const sectionClientes = document.getElementById('section-clientes');
+const sectionFinanzas = document.getElementById('section-finanzas');
 const sectionPlaceholder = document.getElementById('section-placeholder');
 const moduleTitle = document.getElementById('moduleTitle');
 const moduleDesc = document.getElementById('moduleDesc');
@@ -176,28 +177,40 @@ function getTrendMeta(actualVal, prevVal) {
 }
 
 function renderAnnualIncomeTable(months = [], totals = {}, periodInfo = {}) {
-  const anio = periodInfo.anioActual || totals.anio || new Date().getFullYear();
+  const rango13Label =
+    periodInfo.rango13MesesLabel || totals.rango_label || 'Últimos 13 Meses';
   if (annualIncomeTitle) {
-    annualIncomeTitle.textContent = `Gráfico de Ingresos del Año (${anio})`;
+    annualIncomeTitle.textContent = `Gráfico de Ingresos: Últimos 13 Meses (${rango13Label})`;
   }
   if (annualIncomeBadge) {
-    annualIncomeBadge.textContent = `${formatCurrency(totals.total_venta || 0)} en ${anio}`;
+    annualIncomeBadge.textContent = `${formatCurrency(totals.total_venta || 0)} (13 meses)`;
   }
 
   if (!annualIncomeChartContainer) return;
 
   if (!months.length) {
     annualIncomeChartContainer.innerHTML = `
-      <div class="empty-cell">No hay datos de ingresos anuales disponibles.</div>
+      <div class="empty-cell">No hay datos de ingresos en los últimos 13 meses.</div>
     `;
     return;
   }
 
   const currentIdx = months.findIndex((m) => m.es_mes_actual);
   const activeIdx = currentIdx >= 0 ? currentIdx : months.length - 1;
-  const currentMonthObj = months[activeIdx] || { mes_nombre: 'Actual', total_venta: 0 };
-  const prevMonthObj = activeIdx > 0 ? months[activeIdx - 1] : { mes_nombre: 'Anterior', total_venta: 0 };
+  const currentMonthObj = months[activeIdx] || {
+    mes_nombre: 'Actual',
+    mes_etiqueta_larga: 'Mes Actual',
+    total_venta: 0,
+  };
+  const prevMonthObj =
+    activeIdx > 0
+      ? months[activeIdx - 1]
+      : { mes_nombre: 'Anterior', mes_etiqueta_larga: 'Mes Anterior', total_venta: 0 };
+  const sameMonthLastYearObj =
+    months[0] || { mes_nombre: 'Año Ant.', mes_etiqueta_larga: 'Hace 12 meses', total_venta: 0 };
+
   const annualTrend = getTrendMeta(currentMonthObj.total_venta, prevMonthObj.total_venta);
+  const yoyTrend = getTrendMeta(currentMonthObj.total_venta, sameMonthLastYearObj.total_venta);
 
   const maxVenta = Math.max(...months.map((m) => Number(m.total_venta) || 0), 1);
   const mejorMes = months.reduce(
@@ -205,11 +218,11 @@ function renderAnnualIncomeTable(months = [], totals = {}, periodInfo = {}) {
     months[0]
   );
 
-  // Dimensiones del gráfico SVG
+  // Dimensiones del gráfico SVG (13 meses)
   const svgW = 640;
   const svgH = 230;
   const padL = 48;
-  const padR = 20;
+  const padR = 16;
   const padT = 28;
   const padB = 38;
   const plotW = svgW - padL - padR;
@@ -228,6 +241,14 @@ function renderAnnualIncomeTable(months = [], totals = {}, periodInfo = {}) {
     const prevVal = idx > 0 ? Number(months[idx - 1].total_venta) || 0 : val;
     const stepTrend = idx === 0 ? 'flat' : val > prevVal ? 'up' : val < prevVal ? 'down' : 'flat';
 
+    const shortYear = m.anio ? String(m.anio).slice(-2) : '';
+    const shortName =
+      m.mes_etiqueta_corta ||
+      (shortYear
+        ? `${String(m.mes_nombre || '').slice(0, 3)}'${shortYear}`
+        : String(m.mes_nombre || '').slice(0, 3));
+    const fullLabel = m.mes_etiqueta_larga || `${m.mes_nombre || ''} ${m.anio || ''}`.trim();
+
     return {
       ...m,
       idx,
@@ -238,11 +259,12 @@ function renderAnnualIncomeTable(months = [], totals = {}, periodInfo = {}) {
       barH,
       barY,
       stepTrend,
-      shortName: String(m.mes_nombre || '').slice(0, 3),
+      shortName,
+      fullLabel,
     };
   });
 
-  // Polilínea de tendencia hasta el último mes con movimiento o mes actual
+  // Polilínea de tendencia a lo largo de los 13 meses
   const lastLineIdx = Math.max(
     activeIdx,
     points.reduce((acc, p, i) => (p.val > 0 ? i : acc), 0)
@@ -276,17 +298,19 @@ function renderAnnualIncomeTable(months = [], totals = {}, periodInfo = {}) {
       const prev = linePoints[i];
       const segColor =
         curr.val > prev.val ? '#10b981' : curr.val < prev.val ? '#ef4444' : '#60a5fa';
-      return `<line x1="${prev.x.toFixed(1)}" y1="${prev.y.toFixed(1)}" x2="${curr.x.toFixed(1)}" y2="${curr.y.toFixed(1)}" stroke="${segColor}" stroke-width="2.8" stroke-linecap="round" />`;
+      return `<line x1="${prev.x.toFixed(1)}" y1="${prev.y.toFixed(1)}" x2="${curr.x.toFixed(1)}" y2="${curr.y.toFixed(1)}" stroke="${segColor}" stroke-width="2.6" stroke-linecap="round" />`;
     })
     .join('');
 
-  // Barras y nodos de cada mes
+  // Barras y nodos de cada uno de los 13 meses
   const barsAndNodesSvg = points
     .map((p) => {
-      const barWidth = Math.min(26, stepX * 0.58);
+      const barWidth = Math.min(23, stepX * 0.58);
       const bx = p.x - barWidth / 2;
       const barFill = p.es_mes_actual
         ? 'rgba(59, 130, 246, 0.45)'
+        : p.es_mismo_mes_anio_anterior
+        ? 'rgba(168, 85, 247, 0.32)'
         : p.stepTrend === 'up'
         ? 'rgba(16, 185, 129, 0.28)'
         : p.stepTrend === 'down'
@@ -294,14 +318,23 @@ function renderAnnualIncomeTable(months = [], totals = {}, periodInfo = {}) {
         : 'rgba(148, 163, 184, 0.18)';
       const barStroke = p.es_mes_actual
         ? '#60a5fa'
+        : p.es_mismo_mes_anio_anterior
+        ? '#c084fc'
         : p.stepTrend === 'up'
         ? '#10b981'
         : p.stepTrend === 'down'
         ? '#ef4444'
         : '#475569';
 
-      const nodeColor =
-        p.stepTrend === 'up' ? '#10b981' : p.stepTrend === 'down' ? '#ef4444' : '#60a5fa';
+      const nodeColor = p.es_mes_actual
+        ? '#60a5fa'
+        : p.es_mismo_mes_anio_anterior
+        ? '#c084fc'
+        : p.stepTrend === 'up'
+        ? '#10b981'
+        : p.stepTrend === 'down'
+        ? '#ef4444'
+        : '#60a5fa';
       const showNode = p.idx <= lastLineIdx;
       const arrowGlyph =
         p.idx > 0 && p.idx <= lastLineIdx && (p.val > 0 || points[p.idx - 1].val > 0)
@@ -314,24 +347,28 @@ function renderAnnualIncomeTable(months = [], totals = {}, periodInfo = {}) {
 
       return `
         <g class="chart-month-group">
-          <title>${escapeHtml(p.mes_nombre)} ${escapeHtml(anio)}: ${formatCurrency(p.val)} (${p.cantidad_ventas} ventas · Utilidad: ${formatCurrency(p.util)})</title>
+          <title>${escapeHtml(p.fullLabel)}: ${formatCurrency(p.val)} (${p.cantidad_ventas} ventas · Utilidad: ${formatCurrency(p.util)})</title>
           <rect x="${bx.toFixed(1)}" y="${p.barY.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${p.barH.toFixed(1)}" rx="4" fill="${barFill}" stroke="${barStroke}" stroke-width="1" />
           ${
             showNode
-              ? `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.es_mes_actual ? 5 : 3.8}" fill="${nodeColor}" stroke="#0f172a" stroke-width="1.5" />`
+              ? `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.es_mes_actual ? 4.8 : 3.6}" fill="${nodeColor}" stroke="#0f172a" stroke-width="1.5" />`
               : ''
           }
           ${
             arrowGlyph
-              ? `<text x="${p.x.toFixed(1)}" y="${Math.max(12, p.y - 8).toFixed(1)}" text-anchor="middle" fill="${nodeColor}" font-size="9" font-weight="700">${arrowGlyph}</text>`
+              ? `<text x="${p.x.toFixed(1)}" y="${Math.max(12, p.y - 8).toFixed(1)}" text-anchor="middle" fill="${nodeColor}" font-size="8.5" font-weight="700">${arrowGlyph}</text>`
               : ''
           }
-          <text x="${p.x.toFixed(1)}" y="${svgH - 18}" text-anchor="middle" fill="${p.es_mes_actual ? '#60a5fa' : '#cbd5e1'}" font-size="10.5" font-weight="${p.es_mes_actual ? '700' : '500'}">${escapeHtml(p.shortName)}</text>
-          <text x="${p.x.toFixed(1)}" y="${svgH - 5}" text-anchor="middle" fill="#64748b" font-size="9" font-family="monospace">${p.val > 0 ? escapeHtml(formatCompactCurrency(p.val)) : '$0'}</text>
+          <text x="${p.x.toFixed(1)}" y="${svgH - 18}" text-anchor="middle" fill="${p.es_mes_actual ? '#60a5fa' : p.es_mismo_mes_anio_anterior ? '#c084fc' : '#cbd5e1'}" font-size="9.2" font-weight="${p.es_mes_actual || p.es_mismo_mes_anio_anterior ? '700' : '500'}">${escapeHtml(p.shortName)}</text>
+          <text x="${p.x.toFixed(1)}" y="${svgH - 5}" text-anchor="middle" fill="#64748b" font-size="8.3" font-family="monospace">${p.val > 0 ? escapeHtml(formatCompactCurrency(p.val)) : '$0'}</text>
         </g>
       `;
     })
     .join('');
+
+  const currLabel = currentMonthObj.mes_etiqueta_larga || currentMonthObj.mes_nombre;
+  const prevLabel = prevMonthObj.mes_etiqueta_larga || prevMonthObj.mes_nombre;
+  const yoyLabel = sameMonthLastYearObj.mes_etiqueta_larga || sameMonthLastYearObj.mes_nombre;
 
   annualIncomeChartContainer.innerHTML = `
     <div class="trend-banner ${annualTrend.colorClass}">
@@ -340,8 +377,9 @@ function renderAnnualIncomeTable(months = [], totals = {}, periodInfo = {}) {
           ${annualTrend.arrow} ${escapeHtml(annualTrend.label)} (${escapeHtml(annualTrend.shortLabel)})
         </span>
         <span class="trend-banner-text">
-          <strong>${escapeHtml(currentMonthObj.mes_nombre)}:</strong> ${formatCurrency(currentMonthObj.total_venta)}
-          vs. <strong>${escapeHtml(prevMonthObj.mes_nombre)}:</strong> ${formatCurrency(prevMonthObj.total_venta)}
+          <strong>${escapeHtml(currLabel)}:</strong> ${formatCurrency(currentMonthObj.total_venta)}
+          vs. <strong>${escapeHtml(prevLabel)}:</strong> ${formatCurrency(prevMonthObj.total_venta)}
+          · Interanual vs. <strong>${escapeHtml(yoyLabel)}:</strong> ${formatCurrency(sameMonthLastYearObj.total_venta)} (${yoyTrend.arrow} ${escapeHtml(yoyTrend.shortLabel)})
         </span>
       </div>
       <div class="trend-legend">
@@ -352,7 +390,7 @@ function renderAnnualIncomeTable(months = [], totals = {}, periodInfo = {}) {
     </div>
 
     <div class="svg-chart-wrapper">
-      <svg viewBox="0 0 ${svgW} ${svgH}" class="comparison-svg-chart" role="img" aria-label="Gráfico de evolución anual de ingresos">
+      <svg viewBox="0 0 ${svgW} ${svgH}" class="comparison-svg-chart" role="img" aria-label="Gráfico de evolución de ingresos de los últimos 13 meses">
         <defs>
           <linearGradient id="annualAreaGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="${annualTrend.strokeColor}" stop-opacity="0.26" />
@@ -368,43 +406,49 @@ function renderAnnualIncomeTable(months = [], totals = {}, periodInfo = {}) {
 
     <div class="chart-summary-strip">
       <div class="chart-summary-item">
-        <span class="chart-summary-label">Total Ingresos ${escapeHtml(anio)}</span>
+        <span class="chart-summary-label">Total Ingresos (13 Meses)</span>
         <strong class="chart-summary-value text-emerald font-mono">${formatCurrency(totals.total_venta || 0)}</strong>
       </div>
       <div class="chart-summary-item">
-        <span class="chart-summary-label">Utilidad Est. ${escapeHtml(anio)}</span>
+        <span class="chart-summary-label">Utilidad Est. (13 Meses)</span>
         <strong class="chart-summary-value font-mono">${formatCurrency(totals.utilidad_estimada || 0)}</strong>
       </div>
       <div class="chart-summary-item">
-        <span class="chart-summary-label">Ventas Completadas</span>
+        <span class="chart-summary-label">Ventas (13 Meses)</span>
         <strong class="chart-summary-value font-mono">${totals.cantidad_ventas || 0} doc(s)</strong>
       </div>
       <div class="chart-summary-item">
-        <span class="chart-summary-label">Mejor Mes (${escapeHtml(mejorMes?.mes_nombre || '—')})</span>
+        <span class="chart-summary-label">Mejor Mes (${escapeHtml(mejorMes?.mes_etiqueta_corta || mejorMes?.mes_nombre || '—')})</span>
         <strong class="chart-summary-value font-mono">${formatCurrency(mejorMes?.total_venta || 0)}</strong>
       </div>
     </div>
   `;
 }
 
-function renderMonthComparisonTable(comp = {}) {
-  const mesActualLabel = comp.mesActualLabel || 'Mes Actual';
-  const mesPasadoLabel = comp.mesPasadoLabel || 'Mes Pasado';
-  const mesActualNombre = comp.mesActualNombre || 'Mes Actual';
-  const mesPasadoNombre = comp.mesPasadoNombre || 'Mes Pasado';
-  const act = comp.actual || {};
-  const pas = comp.pasado || {};
+function renderMonthComparisonTable(comp30 = {}) {
+  const dias = Array.isArray(comp30.dias) ? comp30.dias : [];
+  const hoy = comp30.hoy || {};
+  const ayer = comp30.ayer || {};
+  const acum = comp30.acumulado30Dias || {};
+  const rangoCorto = comp30.rangoCortoLabel || '30 días anteriores';
+  const rangoLargo = comp30.rangoLabel || '30 días previos al día de hoy';
+  const hoyLabel = comp30.hoyLabel || 'Hoy';
 
   if (monthCompTitle) {
-    monthCompTitle.textContent = `Gráfico Comparativo: ${mesActualNombre} vs. ${mesPasadoNombre}`;
+    monthCompTitle.textContent = `Gráfico Comparativo: 30 Días Anteriores a Hoy (${rangoCorto})`;
   }
   if (monthCompSubtitle) {
-    monthCompSubtitle.textContent = `Curva de ascenso o descenso entre ${mesPasadoLabel} y ${mesActualLabel}`;
+    monthCompSubtitle.textContent = `Evolución diaria de los 30 días previos (${rangoLargo}) vs. Hoy (${hoyLabel})`;
   }
 
-  const mainTrend = getTrendMeta(act.total_venta || 0, pas.total_venta || 0);
+  const hoyVenta = Number(hoy.total_venta) || 0;
+  const prom30Venta = Number(acum.promedio_diario_venta) || 0;
+  const ayerVenta = Number(ayer.total_venta) || 0;
+  const mainTrend = getTrendMeta(hoyVenta, prom30Venta);
+  const vsAyerTrend = getTrendMeta(hoyVenta, ayerVenta);
+
   if (monthCompBadge) {
-    monthCompBadge.textContent = `${mainTrend.arrow} ${mainTrend.label} (${mainTrend.shortLabel})`;
+    monthCompBadge.textContent = `Hoy vs. Prom. 30d: ${mainTrend.arrow} ${mainTrend.shortLabel}`;
     monthCompBadge.className =
       mainTrend.direction === 'up'
         ? 'panel-badge success-badge'
@@ -415,63 +459,239 @@ function renderMonthComparisonTable(comp = {}) {
 
   if (!monthCompChartContainer) return;
 
-  // Mini gráfico SVG de pendiente (Slope Chart) para Ingresos Totales y Utilidad
-  const maxMain = Math.max(
-    Number(pas.total_venta) || 0,
-    Number(act.total_venta) || 0,
+  if (!dias.length) {
+    monthCompChartContainer.innerHTML = `
+      <div class="empty-cell">No hay datos suficientes para graficar los 30 días anteriores a hoy.</div>
+    `;
+    return;
+  }
+
+  // Serie completa de 31 puntos: los 30 días anteriores + Hoy como punto de comparación final
+  const hoyDateParts = String(comp30.hoyKey || '').split('-');
+  const hoyShortTag =
+    hoyDateParts.length === 3 ? `${hoyDateParts[2]}/${hoyDateParts[1]}` : 'Hoy';
+
+  const chartSeries = [
+    ...dias.map((d) => ({
+      ...d,
+      es_hoy: false,
+    })),
+    {
+      fecha_key: comp30.hoyKey || 'HOY',
+      etiqueta_corta: 'HOY',
+      etiqueta_larga: `Hoy (${hoyLabel})`,
+      es_ayer: false,
+      es_hoy: true,
+      cantidad_ventas: Number(hoy.cantidad_ventas) || 0,
+      subtotal_neto: Number(hoy.subtotal_neto) || 0,
+      total_iva: Number(hoy.total_iva) || 0,
+      total_venta: hoyVenta,
+      unidades_vendidas: Number(hoy.unidades_vendidas) || 0,
+      utilidad_estimada: Number(hoy.utilidad_estimada) || 0,
+    },
+  ];
+
+  const maxDailyVenta = Math.max(
+    ...chartSeries.map((d) => Number(d.total_venta) || 0),
+    prom30Venta,
     1
   );
-  const slopeW = 560;
-  const slopeH = 128;
-  const xLeft = 135;
-  const xRight = slopeW - 135;
-  const yTop = 24;
-  const yBot = slopeH - 28;
-  const plotSlopeH = yBot - yTop;
 
-  const yPasVenta = yBot - ((Number(pas.total_venta) || 0) / maxMain) * plotSlopeH;
-  const yActVenta = yBot - ((Number(act.total_venta) || 0) / maxMain) * plotSlopeH;
+  const mejorDia30 = dias.reduce(
+    (best, d) => ((Number(d.total_venta) || 0) > (Number(best.total_venta) || 0) ? d : best),
+    dias[0]
+  );
 
-  const yPasUtil = yBot - (Math.max(0, Number(pas.utilidad_estimada) || 0) / maxMain) * plotSlopeH;
-  const yActUtil = yBot - (Math.max(0, Number(act.utilidad_estimada) || 0) / maxMain) * plotSlopeH;
+  // Dimensiones del gráfico SVG de los 30 días anteriores + Hoy
+  const svgW = 640;
+  const svgH = 215;
+  const padL = 48;
+  const padR = 18;
+  const padT = 24;
+  const padB = 38;
+  const plotW = svgW - padL - padR;
+  const plotH = svgH - padT - padB;
+  const stepX = plotW / chartSeries.length;
+
+  const points = chartSeries.map((d, idx) => {
+    const val = Number(d.total_venta) || 0;
+    const util = Number(d.utilidad_estimada) || 0;
+    const x = padL + stepX * idx + stepX / 2;
+    const ratio = maxDailyVenta > 0 ? val / maxDailyVenta : 0;
+    const y = padT + plotH - ratio * plotH;
+    const barH = Math.max(ratio * plotH, val > 0 ? 4 : 1.5);
+    const barY = padT + plotH - barH;
+    const prevVal = idx > 0 ? Number(chartSeries[idx - 1].total_venta) || 0 : val;
+    const stepTrend = idx === 0 ? 'flat' : val > prevVal ? 'up' : val < prevVal ? 'down' : 'flat';
+
+    return {
+      ...d,
+      idx,
+      val,
+      util,
+      x,
+      y,
+      barH,
+      barY,
+      stepTrend,
+    };
+  });
+
+  const polylineCoords = points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const areaCoords =
+    points.length > 1
+      ? `${points[0].x.toFixed(1)},${(padT + plotH).toFixed(1)} ${polylineCoords} ${points[
+          points.length - 1
+        ].x.toFixed(1)},${(padT + plotH).toFixed(1)}`
+      : '';
+
+  // Líneas guía horizontales
+  const gridLevels = [0, 0.5, 1];
+  const gridSvg = gridLevels
+    .map((lvl) => {
+      const gy = padT + plotH - lvl * plotH;
+      const labelVal = formatCompactCurrency(lvl * maxDailyVenta);
+      return `
+        <line x1="${padL}" y1="${gy.toFixed(1)}" x2="${svgW - padR}" y2="${gy.toFixed(1)}" stroke="rgba(148, 163, 184, 0.16)" stroke-dasharray="3 3" />
+        <text x="${padL - 6}" y="${(gy + 3.5).toFixed(1)}" text-anchor="end" fill="#94a3b8" font-size="9.5" font-family="monospace">${escapeHtml(labelVal)}</text>
+      `;
+    })
+    .join('');
+
+  // Línea horizontal de Promedio Diario de los 30 días anteriores
+  const avgRatio = maxDailyVenta > 0 ? Math.min(1, prom30Venta / maxDailyVenta) : 0;
+  const avgY = padT + plotH - avgRatio * plotH;
+  const avgLineSvg =
+    prom30Venta > 0
+      ? `
+        <line x1="${padL}" y1="${avgY.toFixed(1)}" x2="${svgW - padR}" y2="${avgY.toFixed(1)}" stroke="#f59e0b" stroke-width="1.4" stroke-dasharray="5 4" />
+        <text x="${svgW - padR - 4}" y="${Math.max(padT + 10, avgY - 4).toFixed(1)}" text-anchor="end" fill="#fbbf24" font-size="9" font-weight="600" font-family="monospace">Prom. 30d: ${escapeHtml(formatCompactCurrency(prom30Venta))}</text>
+      `
+      : '';
+
+  // Segmentos de curva entre cada día
+  const segmentsSvg = points
+    .slice(1)
+    .map((curr, i) => {
+      const prev = points[i];
+      const segColor = curr.es_hoy
+        ? '#3b82f6'
+        : curr.val > prev.val
+        ? '#10b981'
+        : curr.val < prev.val
+        ? '#ef4444'
+        : '#64748b';
+      return `<line x1="${prev.x.toFixed(1)}" y1="${prev.y.toFixed(1)}" x2="${curr.x.toFixed(1)}" y2="${curr.y.toFixed(1)}" stroke="${segColor}" stroke-width="${curr.es_hoy ? '2.6' : '1.9'}" stroke-linecap="round" />`;
+    })
+    .join('');
+
+  // Índices de etiquetas en eje X para evitar solapamiento (cada 5 días + Ayer + Hoy)
+  const labelIndices = new Set([0, 5, 10, 15, 20, 25, 29, 30]);
+
+  const barsAndNodesSvg = points
+    .map((p) => {
+      const barWidth = Math.max(6, Math.min(13, stepX * 0.66));
+      const bx = p.x - barWidth / 2;
+      const barFill = p.es_hoy
+        ? 'rgba(59, 130, 246, 0.55)'
+        : p.es_ayer
+        ? 'rgba(168, 85, 247, 0.38)'
+        : p.val >= prom30Venta && p.val > 0
+        ? 'rgba(16, 185, 129, 0.28)'
+        : p.val > 0
+        ? 'rgba(239, 68, 68, 0.24)'
+        : 'rgba(148, 163, 184, 0.14)';
+      const barStroke = p.es_hoy
+        ? '#60a5fa'
+        : p.es_ayer
+        ? '#c084fc'
+        : p.val >= prom30Venta && p.val > 0
+        ? '#10b981'
+        : p.val > 0
+        ? '#ef4444'
+        : '#334155';
+      const nodeColor = p.es_hoy
+        ? '#60a5fa'
+        : p.es_ayer
+        ? '#c084fc'
+        : p.stepTrend === 'up'
+        ? '#10b981'
+        : p.stepTrend === 'down'
+        ? '#ef4444'
+        : '#94a3b8';
+
+      const showXLabel = labelIndices.has(p.idx);
+      const xLabelText = p.es_hoy ? `HOY (${hoyShortTag})` : p.etiqueta_corta;
+
+      return `
+        <g class="chart-day-group">
+          <title>${escapeHtml(p.etiqueta_larga)}: ${formatCurrency(p.val)} (${p.cantidad_ventas} venta(s) · ${formatNumber(p.unidades_vendidas)} unid. · Utilidad: ${formatCurrency(p.util)})</title>
+          <rect x="${bx.toFixed(1)}" y="${p.barY.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${p.barH.toFixed(1)}" rx="2.5" fill="${barFill}" stroke="${barStroke}" stroke-width="0.9" />
+          ${
+            p.val > 0 || p.es_hoy || p.es_ayer
+              ? `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.es_hoy ? 4.4 : p.es_ayer ? 3.5 : 2.5}" fill="${nodeColor}" stroke="#0f172a" stroke-width="1.2" />`
+              : ''
+          }
+          ${
+            showXLabel
+              ? `<text x="${p.x.toFixed(1)}" y="${svgH - 14}" text-anchor="${p.es_hoy ? 'end' : 'middle'}" fill="${p.es_hoy ? '#60a5fa' : p.es_ayer ? '#c084fc' : '#cbd5e1'}" font-size="${p.es_hoy ? '9.5' : '9'}" font-weight="${p.es_hoy || p.es_ayer ? '700' : '500'}">${escapeHtml(xLabelText)}</text>`
+              : ''
+          }
+        </g>
+      `;
+    })
+    .join('');
 
   const diffSign = mainTrend.diff > 0 ? '+' : '';
+  const diffAyerSign = vsAyerTrend.diff > 0 ? '+' : '';
 
   const metrics = [
     {
-      label: 'Ingresos Totales (Bruto)',
-      pasado: Number(pas.total_venta) || 0,
-      actual: Number(act.total_venta) || 0,
+      label: 'Ingresos Diarios (Hoy vs. Prom. 30d)',
+      prevLabel: 'Prom. 30d',
+      currLabel: 'Hoy',
+      pasado: prom30Venta,
+      actual: hoyVenta,
       format: formatCurrency,
     },
     {
-      label: 'Ventas Netas (Sin IVA)',
-      pasado: Number(pas.subtotal_neto) || 0,
-      actual: Number(act.subtotal_neto) || 0,
+      label: `Ingresos: Hoy vs. Ayer (${ayer.etiqueta_corta || 'Ayer'})`,
+      prevLabel: 'Ayer',
+      currLabel: 'Hoy',
+      pasado: ayerVenta,
+      actual: hoyVenta,
       format: formatCurrency,
     },
     {
-      label: 'Utilidad Estimada (Histórica)',
-      pasado: Number(pas.utilidad_estimada) || 0,
-      actual: Number(act.utilidad_estimada) || 0,
+      label: 'Utilidad Estimada (Hoy vs. Prom. 30d)',
+      prevLabel: 'Prom. 30d',
+      currLabel: 'Hoy',
+      pasado: Number(acum.promedio_diario_utilidad) || 0,
+      actual: Number(hoy.utilidad_estimada) || 0,
       format: formatCurrency,
     },
     {
-      label: 'Ticket Promedio',
-      pasado: Number(pas.ticket_promedio) || 0,
-      actual: Number(act.ticket_promedio) || 0,
+      label: 'Ticket Promedio (Hoy vs. 30 días ant.)',
+      prevLabel: '30 días ant.',
+      currLabel: 'Hoy',
+      pasado: Number(acum.ticket_promedio) || 0,
+      actual: Number(hoy.ticket_promedio) || 0,
       format: formatCurrency,
     },
     {
-      label: 'Cantidad de Ventas (Docs)',
-      pasado: Number(pas.cantidad_ventas) || 0,
-      actual: Number(act.cantidad_ventas) || 0,
-      format: (v) => `${Math.round(Number(v) || 0)} vta(s)`,
+      label: 'Ventas Completadas (Hoy vs. Prom. 30d)',
+      prevLabel: 'Prom. 30d',
+      currLabel: 'Hoy',
+      pasado: Number(acum.promedio_diario_ventas_docs) || 0,
+      actual: Number(hoy.cantidad_ventas) || 0,
+      format: (v) => `${formatNumber(v)} vta(s)`,
     },
     {
-      label: 'Unidades Vendidas',
-      pasado: Number(pas.unidades_vendidas) || 0,
-      actual: Number(act.unidades_vendidas) || 0,
+      label: 'Unidades Vendidas (Hoy vs. Prom. 30d)',
+      prevLabel: 'Prom. 30d',
+      currLabel: 'Hoy',
+      pasado: Number(acum.promedio_diario_unidades) || 0,
+      actual: Number(hoy.unidades_vendidas) || 0,
       format: (v) => `${formatNumber(v)} unid.`,
     },
   ];
@@ -490,19 +710,19 @@ function renderMonthComparisonTable(comp = {}) {
           <div class="comp-metric-header">
             <span class="comp-metric-title">${escapeHtml(m.label)}</span>
             <span class="trend-direction-pill sm ${t.colorClass}">
-              ${t.arrow} ${escapeHtml(t.label)} (${escapeHtml(t.shortLabel)} · ${dSign}${escapeHtml(diffFormatted)})
+              ${t.arrow} ${escapeHtml(t.shortLabel)} (${dSign}${escapeHtml(diffFormatted)})
             </span>
           </div>
           <div class="comp-bars-pair">
             <div class="comp-bar-row">
-              <span class="comp-bar-period">${escapeHtml(mesPasadoNombre)}</span>
+              <span class="comp-bar-period">${escapeHtml(m.prevLabel)}</span>
               <div class="comp-bar-track">
                 <div class="comp-bar-fill prev" style="width: ${m.pasado > 0 ? pasPct.toFixed(1) : 0}%"></div>
               </div>
               <span class="comp-bar-amount font-mono">${escapeHtml(m.format(m.pasado))}</span>
             </div>
             <div class="comp-bar-row">
-              <span class="comp-bar-period current">${escapeHtml(mesActualNombre)}</span>
+              <span class="comp-bar-period current">${escapeHtml(m.currLabel)}</span>
               <div class="comp-bar-track">
                 <div class="comp-bar-fill ${t.colorClass}" style="width: ${m.actual > 0 ? actPct.toFixed(1) : 0}%"></div>
               </div>
@@ -518,43 +738,54 @@ function renderMonthComparisonTable(comp = {}) {
     <div class="trend-banner ${mainTrend.colorClass}">
       <div class="trend-banner-main">
         <span class="trend-direction-pill ${mainTrend.colorClass}">
-          ${mainTrend.arrow} Ingresos ${escapeHtml(mainTrend.label)} (${escapeHtml(mainTrend.shortLabel)})
+          ${mainTrend.arrow} Hoy vs. Prom. 30 días: ${escapeHtml(mainTrend.label)} (${escapeHtml(mainTrend.shortLabel)})
         </span>
         <span class="trend-banner-text">
-          Diferencia vs. ${escapeHtml(mesPasadoNombre)}:
-          <strong class="font-mono">${diffSign}${formatCurrency(mainTrend.diff)}</strong>
+          <strong>Hoy:</strong> ${formatCurrency(hoyVenta)} ·
+          <strong>Prom. 30d:</strong> ${formatCurrency(prom30Venta)} (${diffSign}${formatCurrency(mainTrend.diff)}) ·
+          <strong>Ayer:</strong> ${formatCurrency(ayerVenta)} (${diffAyerSign}${formatCurrency(vsAyerTrend.diff)})
         </span>
+      </div>
+      <div class="trend-legend">
+        <span class="legend-item"><i class="legend-dot up"></i> Sobre prom.</span>
+        <span class="legend-item"><i class="legend-dot down"></i> Bajo prom.</span>
+        <span class="legend-item"><i class="legend-dot current"></i> Hoy</span>
       </div>
     </div>
 
-    <div class="svg-chart-wrapper slope-chart-wrapper">
-      <svg viewBox="0 0 ${slopeW} ${slopeH}" class="comparison-svg-chart" role="img" aria-label="Curva de ascenso o descenso entre mes pasado y mes actual">
-        <line x1="${xLeft}" y1="${yTop}" x2="${xLeft}" y2="${yBot}" stroke="rgba(148, 163, 184, 0.25)" stroke-dasharray="3 3" />
-        <line x1="${xRight}" y1="${yTop}" x2="${xRight}" y2="${yBot}" stroke="rgba(148, 163, 184, 0.25)" stroke-dasharray="3 3" />
-
-        <!-- Línea de Utilidad Estimada -->
-        <line x1="${xLeft}" y1="${yPasUtil.toFixed(1)}" x2="${xRight}" y2="${yActUtil.toFixed(1)}" stroke="#a855f7" stroke-width="2" stroke-dasharray="4 3" />
-        <circle cx="${xLeft}" cy="${yPasUtil.toFixed(1)}" r="4" fill="#a855f7" />
-        <circle cx="${xRight}" cy="${yActUtil.toFixed(1)}" r="4" fill="#a855f7" />
-
-        <!-- Línea principal de Ingresos (Ascenso / Descenso) -->
-        <line x1="${xLeft}" y1="${yPasVenta.toFixed(1)}" x2="${xRight}" y2="${yActVenta.toFixed(1)}" stroke="${mainTrend.strokeColor}" stroke-width="3.5" stroke-linecap="round" />
-        <circle cx="${xLeft}" cy="${yPasVenta.toFixed(1)}" r="5.5" fill="#94a3b8" stroke="#0f172a" stroke-width="1.5" />
-        <circle cx="${xRight}" cy="${yActVenta.toFixed(1)}" r="6.5" fill="${mainTrend.strokeColor}" stroke="#0f172a" stroke-width="1.5" />
-
-        <!-- Etiquetas Izquierda (Mes Pasado) -->
-        <text x="${xLeft - 12}" y="${yPasVenta.toFixed(1)}" text-anchor="end" fill="#e2e8f0" font-size="11" font-weight="700" font-family="monospace">${escapeHtml(formatCurrency(pas.total_venta || 0))}</text>
-        <text x="${xLeft}" y="${slopeH - 7}" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600">${escapeHtml(mesPasadoLabel)}</text>
-
-        <!-- Etiqueta central de pendiente -->
-        <text x="${(xLeft + xRight) / 2}" y="${((yPasVenta + yActVenta) / 2 - 10).toFixed(1)}" text-anchor="middle" fill="${mainTrend.strokeColor}" font-size="11.5" font-weight="700">
-          ${mainTrend.arrow} ${escapeHtml(mainTrend.label)} (${escapeHtml(mainTrend.shortLabel)})
-        </text>
-
-        <!-- Etiquetas Derecha (Mes Actual) -->
-        <text x="${xRight + 12}" y="${yActVenta.toFixed(1)}" text-anchor="start" fill="${mainTrend.strokeColor}" font-size="11.5" font-weight="700" font-family="monospace">${escapeHtml(formatCurrency(act.total_venta || 0))}</text>
-        <text x="${xRight}" y="${slopeH - 7}" text-anchor="middle" fill="#60a5fa" font-size="11" font-weight="700">${escapeHtml(mesActualLabel)}</text>
+    <div class="svg-chart-wrapper">
+      <svg viewBox="0 0 ${svgW} ${svgH}" class="comparison-svg-chart" role="img" aria-label="Gráfico comparativo de los 30 días anteriores al día de hoy">
+        <defs>
+          <linearGradient id="prev30AreaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${mainTrend.strokeColor}" stop-opacity="0.24" />
+            <stop offset="100%" stop-color="${mainTrend.strokeColor}" stop-opacity="0.0" />
+          </linearGradient>
+        </defs>
+        ${gridSvg}
+        ${areaCoords ? `<polygon points="${areaCoords}" fill="url(#prev30AreaGrad)" />` : ''}
+        ${avgLineSvg}
+        ${segmentsSvg}
+        ${barsAndNodesSvg}
       </svg>
+    </div>
+
+    <div class="chart-summary-strip">
+      <div class="chart-summary-item">
+        <span class="chart-summary-label">Acumulado 30 Días Ant.</span>
+        <strong class="chart-summary-value text-emerald font-mono">${formatCurrency(acum.total_venta || 0)}</strong>
+      </div>
+      <div class="chart-summary-item">
+        <span class="chart-summary-label">Promedio Diario (30d)</span>
+        <strong class="chart-summary-value font-mono">${formatCurrency(prom30Venta)}</strong>
+      </div>
+      <div class="chart-summary-item">
+        <span class="chart-summary-label">Días Activos / Ventas</span>
+        <strong class="chart-summary-value font-mono">${acum.dias_con_ventas || 0}/30 días (${acum.cantidad_ventas || 0} docs)</strong>
+      </div>
+      <div class="chart-summary-item">
+        <span class="chart-summary-label">Mejor Día (${escapeHtml(mejorDia30?.etiqueta_corta || '—')})</span>
+        <strong class="chart-summary-value font-mono">${formatCurrency(mejorDia30?.total_venta || 0)}</strong>
+      </div>
     </div>
 
     <div class="comp-metrics-grid">
@@ -765,7 +996,7 @@ async function loadDashboard() {
     kpiTotalProductos.textContent = `${s.stockCriticoCount || 0} crítico · ${s.stockPrecaucionCount || 0} precaución · ${s.stockSugerenciaCount || 0} sugerencia (de ${s.totalProductosActivos} activos)`;
 
     renderAnnualIncomeTable(data.annualIncomeByMonth || [], data.annualTotals || {}, p);
-    renderMonthComparisonTable(data.monthComparison || {});
+    renderMonthComparisonTable(data.previous30DaysComparison || {});
     renderLowStock(data.lowStockProducts || [], s);
     renderTopSelling(data.topSellingProducts || []);
     renderRecentSales(data.recentSales || []);
@@ -1105,7 +1336,9 @@ const npPrecioNeto = document.getElementById('npPrecioNeto');
 const npExento = document.getElementById('npExento');
 const npPrecioFinal = document.getElementById('npPrecioFinal');
 const npStockMinimo = document.getElementById('npStockMinimo');
+const npStockMinimoLabel = document.getElementById('npStockMinimoLabel');
 const npStockInicial = document.getElementById('npStockInicial');
+const npStockInicialLabel = document.getElementById('npStockInicialLabel');
 const npDescripcion = document.getElementById('npDescripcion');
 const npFeedback = document.getElementById('npFeedback');
 const npSubmitBtn = document.getElementById('npSubmitBtn');
@@ -1117,6 +1350,7 @@ const seSelectedProductInfo = document.getElementById('seSelectedProductInfo');
 const seProducto = document.getElementById('seProducto');
 const seTipo = document.getElementById('seTipo');
 const seCantidad = document.getElementById('seCantidad');
+const seCantidadLabel = document.getElementById('seCantidadLabel');
 const seCostoUnitario = document.getElementById('seCostoUnitario');
 const seReferencia = document.getElementById('seReferencia');
 const seMotivo = document.getElementById('seMotivo');
@@ -1130,6 +1364,7 @@ const slSelectedProductInfo = document.getElementById('slSelectedProductInfo');
 const slProducto = document.getElementById('slProducto');
 const slTipo = document.getElementById('slTipo');
 const slCantidad = document.getElementById('slCantidad');
+const slCantidadLabel = document.getElementById('slCantidadLabel');
 const slReferencia = document.getElementById('slReferencia');
 const slMotivo = document.getElementById('slMotivo');
 const slFeedback = document.getElementById('slFeedback');
@@ -1209,14 +1444,143 @@ function showFeedback(boxEl, type, message) {
   boxEl.classList.remove('hidden');
 }
 
-function updateCalculatedPrecioFinal() {
-  const neto = Number(npPrecioNeto.value) || 0;
-  const exento = Number(npExento.value) === 1;
-  npPrecioFinal.value = exento ? Math.round(neto) : Math.round(neto * 1.19);
+function isIntegerOnlyUnit(unidadMedida) {
+  const u = String(unidadMedida || 'UN').toUpperCase();
+  return u === 'UN' || u === 'CAJA';
 }
 
-npPrecioNeto.addEventListener('input', updateCalculatedPrecioFinal);
-npExento.addEventListener('change', updateCalculatedPrecioFinal);
+function blockDecimalKeystrokesOnIntegerInput(e) {
+  if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-') {
+    e.preventDefault();
+  }
+}
+
+function sanitizeIntegerInputValue(inputEl) {
+  if (!inputEl) return;
+  const raw = String(inputEl.value || '');
+  if (/[.,eE-]/.test(raw)) {
+    const cleaned = raw.replace(/[^0-9]/g, '');
+    inputEl.value = cleaned;
+  }
+}
+
+// Todos los precios y costos en Gestión de Stock deben ser enteros sin punto flotante
+[npCosto, npPrecioNeto, npPrecioFinal, seCostoUnitario].forEach((priceEl) => {
+  if (!priceEl) return;
+  priceEl.addEventListener('keydown', blockDecimalKeystrokesOnIntegerInput);
+  priceEl.addEventListener('input', () => sanitizeIntegerInputValue(priceEl));
+});
+
+function syncNewProductQuantityStepByUnit() {
+  const unit = npUnidad ? npUnidad.value : 'UN';
+  const isIntUnit = isIntegerOnlyUnit(unit);
+  const stepVal = isIntUnit ? '1' : '0.01';
+  const inputModeVal = isIntUnit ? 'numeric' : 'decimal';
+
+  if (npStockMinimo) {
+    npStockMinimo.step = stepVal;
+    npStockMinimo.setAttribute('inputmode', inputModeVal);
+    if (isIntUnit) sanitizeIntegerInputValue(npStockMinimo);
+  }
+  if (npStockInicial) {
+    npStockInicial.step = stepVal;
+    npStockInicial.setAttribute('inputmode', inputModeVal);
+    if (isIntUnit) sanitizeIntegerInputValue(npStockInicial);
+  }
+  if (npStockMinimoLabel) {
+    npStockMinimoLabel.textContent = isIntUnit
+      ? `Stock Mínimo (${unit} entero, sin decimales) *`
+      : `Stock Mínimo (${unit}) *`;
+  }
+  if (npStockInicialLabel) {
+    npStockInicialLabel.textContent = isIntUnit
+      ? `Stock Inicial (${unit} entero, sin decimales) *`
+      : `Stock Inicial (${unit}) *`;
+  }
+}
+
+if (npUnidad) {
+  npUnidad.addEventListener('change', syncNewProductQuantityStepByUnit);
+}
+
+[npStockMinimo, npStockInicial].forEach((qtyEl) => {
+  if (!qtyEl) return;
+  qtyEl.addEventListener('keydown', (e) => {
+    if (isIntegerOnlyUnit(npUnidad ? npUnidad.value : 'UN')) {
+      blockDecimalKeystrokesOnIntegerInput(e);
+    } else if (e.key === 'e' || e.key === 'E' || e.key === '-') {
+      e.preventDefault();
+    }
+  });
+  qtyEl.addEventListener('input', () => {
+    if (isIntegerOnlyUnit(npUnidad ? npUnidad.value : 'UN')) {
+      sanitizeIntegerInputValue(qtyEl);
+    }
+  });
+});
+
+function configureStockQuantityInputForProduct(inputEl, labelEl, prod, baseLabelText) {
+  if (!inputEl) return;
+  const unit = prod ? prod.unidad_medida : 'UN';
+  const isIntUnit = isIntegerOnlyUnit(unit);
+
+  if (isIntUnit) {
+    inputEl.step = '1';
+    inputEl.min = '1';
+    inputEl.setAttribute('inputmode', 'numeric');
+    inputEl.placeholder = `Ingresa cantidad entera en ${unit} (sin decimales)`;
+    sanitizeIntegerInputValue(inputEl);
+  } else {
+    inputEl.step = '0.01';
+    inputEl.min = '0.01';
+    inputEl.setAttribute('inputmode', 'decimal');
+    inputEl.placeholder = `Ingresa cantidad en ${unit} (ej: 1.5)`;
+  }
+
+  if (labelEl) {
+    labelEl.textContent = prod
+      ? isIntUnit
+        ? `${baseLabelText} (${unit} — solo enteros, sin decimales) *`
+        : `${baseLabelText} (${unit}) *`
+      : `${baseLabelText} (> 0) *`;
+  }
+}
+
+if (seCantidad) {
+  seCantidad.addEventListener('keydown', (e) => {
+    const prod = cachedStockProducts.find((p) => String(p.id_producto) === String(seProducto.value));
+    if (isIntegerOnlyUnit(prod ? prod.unidad_medida : 'UN')) {
+      blockDecimalKeystrokesOnIntegerInput(e);
+    } else if (e.key === 'e' || e.key === 'E' || e.key === '-') {
+      e.preventDefault();
+    }
+  });
+  seCantidad.addEventListener('input', () => {
+    const prod = cachedStockProducts.find((p) => String(p.id_producto) === String(seProducto.value));
+    if (isIntegerOnlyUnit(prod ? prod.unidad_medida : 'UN')) {
+      sanitizeIntegerInputValue(seCantidad);
+    }
+  });
+}
+
+if (slCantidad) {
+  slCantidad.addEventListener('keydown', (e) => {
+    const prod = cachedStockProducts.find((p) => String(p.id_producto) === String(slProducto.value));
+    if (isIntegerOnlyUnit(prod ? prod.unidad_medida : 'UN')) {
+      blockDecimalKeystrokesOnIntegerInput(e);
+    } else if (e.key === 'e' || e.key === 'E' || e.key === '-') {
+      e.preventDefault();
+    }
+  });
+  slCantidad.addEventListener('input', () => {
+    const prod = cachedStockProducts.find((p) => String(p.id_producto) === String(slProducto.value));
+    if (isIntegerOnlyUnit(prod ? prod.unidad_medida : 'UN')) {
+      sanitizeIntegerInputValue(slCantidad);
+    }
+  });
+}
+
+syncNewProductQuantityStepByUnit();
 
 function filterStockProductsByQuery(rawQuery = '') {
   const q = String(rawQuery || '').trim().toLowerCase();
@@ -1328,8 +1692,15 @@ function selectProductForStockEntry(prodId) {
   const prod = cachedStockProducts.find((p) => String(p.id_producto) === String(prodId));
   seProducto.innerHTML = buildProductOptionsHtml(cachedStockProducts, prod ? prod.id_producto : '');
   seProducto.value = prod ? String(prod.id_producto) : '';
+  configureStockQuantityInputForProduct(seCantidad, seCantidadLabel, prod, 'Cantidad a Ingresar');
+  if (seCantidad) seCantidad.value = '';
+  if (seCostoUnitario) {
+    seCostoUnitario.value = '';
+    seCostoUnitario.placeholder = prod
+      ? `Ingresa costo unitario (actual: $${Math.round(Number(prod.costo_promedio) || 0)})`
+      : 'Ingresa costo unitario en $';
+  }
   if (prod) {
-    seCostoUnitario.value = prod.costo_promedio ?? 0;
     if (seProductSearchResults) seProductSearchResults.classList.add('hidden');
     if (seCantidad) seCantidad.focus();
   }
@@ -1340,8 +1711,16 @@ function selectProductForStockLoss(prodId) {
   const prod = cachedStockProducts.find((p) => String(p.id_producto) === String(prodId));
   slProducto.innerHTML = buildProductOptionsHtml(cachedStockProducts, prod ? prod.id_producto : '');
   slProducto.value = prod ? String(prod.id_producto) : '';
+  configureStockQuantityInputForProduct(slCantidad, slCantidadLabel, prod, 'Cantidad a Descontar');
+  if (slCantidad) slCantidad.value = '';
   if (prod) {
-    slCantidad.max = prod.stock_actual > 0 ? prod.stock_actual : '';
+    const maxStock = Number(prod.stock_actual) || 0;
+    slCantidad.max =
+      maxStock > 0
+        ? isIntegerOnlyUnit(prod.unidad_medida)
+          ? Math.floor(maxStock)
+          : maxStock
+        : '';
     if (slProductSearchResults) slProductSearchResults.classList.add('hidden');
     if (slCantidad) slCantidad.focus();
   } else {
@@ -1495,32 +1874,47 @@ function populateStockManagementSelectors(data) {
   if (prevSeProd) {
     seProducto.value = prevSeProd;
     const prod = cachedStockProducts.find((p) => String(p.id_producto) === String(prevSeProd));
+    configureStockQuantityInputForProduct(seCantidad, seCantidadLabel, prod, 'Cantidad a Ingresar');
     updateSelectedProductInfoPill(seSelectedProductInfo, prod, 'entry');
   } else {
+    configureStockQuantityInputForProduct(seCantidad, seCantidadLabel, null, 'Cantidad a Ingresar');
     updateSelectedProductInfoPill(seSelectedProductInfo, null, 'entry');
   }
 
   if (prevSlProd) {
     slProducto.value = prevSlProd;
     const prod = cachedStockProducts.find((p) => String(p.id_producto) === String(prevSlProd));
+    configureStockQuantityInputForProduct(slCantidad, slCantidadLabel, prod, 'Cantidad a Descontar');
     updateSelectedProductInfoPill(slSelectedProductInfo, prod, 'loss');
   } else {
+    configureStockQuantityInputForProduct(slCantidad, slCantidadLabel, null, 'Cantidad a Descontar');
     updateSelectedProductInfoPill(slSelectedProductInfo, null, 'loss');
   }
 }
 
 seProducto.addEventListener('change', () => {
   const prod = cachedStockProducts.find((p) => String(p.id_producto) === String(seProducto.value));
-  if (prod) {
-    seCostoUnitario.value = prod.costo_promedio ?? 0;
+  configureStockQuantityInputForProduct(seCantidad, seCantidadLabel, prod, 'Cantidad a Ingresar');
+  if (seCostoUnitario) {
+    seCostoUnitario.value = '';
+    seCostoUnitario.placeholder = prod
+      ? `Ingresa costo unitario (actual: $${Math.round(Number(prod.costo_promedio) || 0)})`
+      : 'Ingresa costo unitario en $';
   }
   updateSelectedProductInfoPill(seSelectedProductInfo, prod, 'entry');
 });
 
 slProducto.addEventListener('change', () => {
   const prod = cachedStockProducts.find((p) => String(p.id_producto) === String(slProducto.value));
+  configureStockQuantityInputForProduct(slCantidad, slCantidadLabel, prod, 'Cantidad a Descontar');
   if (prod) {
-    slCantidad.max = prod.stock_actual > 0 ? prod.stock_actual : '';
+    const maxStock = Number(prod.stock_actual) || 0;
+    slCantidad.max =
+      maxStock > 0
+        ? isIntegerOnlyUnit(prod.unidad_medida)
+          ? Math.floor(maxStock)
+          : maxStock
+        : '';
   } else {
     slCantidad.removeAttribute('max');
   }
@@ -1565,6 +1959,36 @@ formNewProduct.addEventListener('submit', async (e) => {
   npFeedback.classList.add('hidden');
 
   try {
+    if (
+      npCosto.value.trim() === '' ||
+      npPrecioNeto.value.trim() === '' ||
+      npPrecioFinal.value.trim() === '' ||
+      npStockMinimo.value.trim() === '' ||
+      npStockInicial.value.trim() === ''
+    ) {
+      throw new Error('Debes ingresar manualmente todos los precios y cantidades del producto.');
+    }
+
+    const costoVal = Number(npCosto.value);
+    const netoVal = Number(npPrecioNeto.value);
+    const finalVal = Number(npPrecioFinal.value);
+    const minVal = Number(npStockMinimo.value);
+    const iniVal = Number(npStockInicial.value);
+
+    if (
+      !Number.isInteger(costoVal) ||
+      !Number.isInteger(netoVal) ||
+      !Number.isInteger(finalVal)
+    ) {
+      throw new Error('Los precios y costos no deben tener decimales ni punto flotante.');
+    }
+
+    if (isIntegerOnlyUnit(npUnidad.value) && (!Number.isInteger(minVal) || !Number.isInteger(iniVal))) {
+      throw new Error(
+        `Los productos catalogados por ${npUnidad.value} no permiten decimales ni punto flotante en stock.`
+      );
+    }
+
     const payload = {
       nombre: npNombre.value.trim(),
       unidad_medida: npUnidad.value,
@@ -1572,12 +1996,12 @@ formNewProduct.addEventListener('submit', async (e) => {
       codigo_barras: npBarcode.value.trim() || null,
       id_categoria: npCategoria.value || null,
       nueva_categoria: npNuevaCategoria.value.trim() || null,
-      costo_promedio: Number(npCosto.value) || 0,
-      precio_neto: Number(npPrecioNeto.value) || 0,
+      costo_promedio: costoVal,
+      precio_neto: netoVal,
       exento_iva: Number(npExento.value) === 1 ? 1 : 0,
-      precio_venta_final: Number(npPrecioFinal.value) || 0,
-      stock_minimo: Number(npStockMinimo.value) || 0,
-      stock_inicial: Number(npStockInicial.value) || 0,
+      precio_venta_final: finalVal,
+      stock_minimo: minVal,
+      stock_inicial: iniVal,
       descripcion: npDescripcion.value.trim() || null,
       id_usuario: stockActiveUser.value || null,
     };
@@ -1593,11 +2017,7 @@ formNewProduct.addEventListener('submit', async (e) => {
       `Producto "${data.producto.nombre}" ${syncNote} (Stock actual: ${data.producto.stock_actual} ${data.producto.unidad_medida}).`
     );
     formNewProduct.reset();
-    npCosto.value = '0';
-    npPrecioNeto.value = '0';
-    npPrecioFinal.value = '0';
-    npStockMinimo.value = '5';
-    npStockInicial.value = '0';
+    syncNewProductQuantityStepByUnit();
     await loadStockManagementSection();
   } catch (err) {
     showFeedback(npFeedback, 'error', err.message);
@@ -1612,12 +2032,30 @@ formStockEntry.addEventListener('submit', async (e) => {
   seFeedback.classList.add('hidden');
 
   try {
+    if (seCantidad.value.trim() === '' || seCostoUnitario.value.trim() === '') {
+      throw new Error('Debes ingresar manualmente tanto la cantidad como el costo unitario.');
+    }
+
+    const prod = cachedStockProducts.find((p) => String(p.id_producto) === String(seProducto.value));
+    const cantVal = Number(seCantidad.value);
+    const costoVal = Number(seCostoUnitario.value);
+
+    if (!Number.isInteger(costoVal) || costoVal < 0) {
+      throw new Error('El costo unitario debe ser un número entero (sin punto flotante).');
+    }
+
+    if (prod && isIntegerOnlyUnit(prod.unidad_medida) && !Number.isInteger(cantVal)) {
+      throw new Error(
+        `El producto "${prod.nombre}" se mide en ${prod.unidad_medida}: la cantidad debe ser un número entero sin decimales.`
+      );
+    }
+
     const payload = {
       id_producto: Number(seProducto.value),
       id_usuario: stockActiveUser.value || null,
       tipo_movimiento: seTipo.value,
-      cantidad: Number(seCantidad.value),
-      costo_unitario: seCostoUnitario.value !== '' ? Number(seCostoUnitario.value) : null,
+      cantidad: cantVal,
+      costo_unitario: costoVal,
       referencia_origen: seReferencia.value.trim() || 'INGRESO BODEGA',
       motivo: seMotivo.value.trim() || 'Reposición de stock',
     };
@@ -1630,6 +2068,7 @@ formStockEntry.addEventListener('submit', async (e) => {
       `Stock actualizado en ${data.savedToFile || 'tu archivo .db local'} para "${data.producto.nombre}": ${data.stock_anterior} → ${data.stock_resultante} ${data.producto.unidad_medida}.`
     );
     seCantidad.value = '';
+    seCostoUnitario.value = '';
     await loadStockManagementSection();
   } catch (err) {
     showFeedback(seFeedback, 'error', err.message);
@@ -1644,11 +2083,24 @@ formStockLoss.addEventListener('submit', async (e) => {
   slFeedback.classList.add('hidden');
 
   try {
+    if (slCantidad.value.trim() === '') {
+      throw new Error('Debes ingresar manualmente la cantidad de merma o pérdida.');
+    }
+
+    const prod = cachedStockProducts.find((p) => String(p.id_producto) === String(slProducto.value));
+    const cantVal = Number(slCantidad.value);
+
+    if (prod && isIntegerOnlyUnit(prod.unidad_medida) && !Number.isInteger(cantVal)) {
+      throw new Error(
+        `El producto "${prod.nombre}" está catalogado en ${prod.unidad_medida}: no se permiten decimales ni punto flotante al registrar mermas o pérdidas.`
+      );
+    }
+
     const payload = {
       id_producto: Number(slProducto.value),
       id_usuario: stockActiveUser.value || null,
       tipo_movimiento: slTipo.value,
-      cantidad: Number(slCantidad.value),
+      cantidad: cantVal,
       referencia_origen: slReferencia.value.trim() || 'ACTA DE MERMA',
       motivo: slMotivo.value.trim(),
     };
@@ -2523,6 +2975,567 @@ if (clientForm) {
   });
 }
 
+// ==========================================
+// SECCIÓN FINANZAS (INGRESOS, EGRESOS POR SEPARADO, IVA Y PÉRDIDAS POR MERMA / BAJA)
+// ==========================================
+let activeFinanceMonths = 1;
+
+const finPeriodSubtitle = document.getElementById('finPeriodSubtitle');
+const financePeriodBtns = document.querySelectorAll('[data-fin-months]');
+const refreshFinanceBtn = document.getElementById('refreshFinanceBtn');
+
+const finKpiIngresosLabel = document.getElementById('finKpiIngresosLabel');
+const finKpiIngresosMonto = document.getElementById('finKpiIngresosMonto');
+const finKpiIngresosMeta = document.getElementById('finKpiIngresosMeta');
+
+const finKpiEgresosLabel = document.getElementById('finKpiEgresosLabel');
+const finKpiEgresosMonto = document.getElementById('finKpiEgresosMonto');
+const finKpiEgresosMeta = document.getElementById('finKpiEgresosMeta');
+
+const finKpiIvaLabel = document.getElementById('finKpiIvaLabel');
+const finKpiIvaMonto = document.getElementById('finKpiIvaMonto');
+const finKpiIvaMeta = document.getElementById('finKpiIvaMeta');
+
+const finKpiMermaLabel = document.getElementById('finKpiMermaLabel');
+const finKpiMermaMonto = document.getElementById('finKpiMermaMonto');
+const finKpiMermaMeta = document.getElementById('finKpiMermaMeta');
+
+const finChartTitle = document.getElementById('finChartTitle');
+const finChartBadge = document.getElementById('finChartBadge');
+const finChartContainer = document.getElementById('finChartContainer');
+
+const finIngresosBadge = document.getElementById('finIngresosBadge');
+const finIngNeto = document.getElementById('finIngNeto');
+const finIngIva = document.getElementById('finIngIva');
+const finIngDescuentos = document.getElementById('finIngDescuentos');
+const finIngTotalBruto = document.getElementById('finIngTotalBruto');
+const finIngresosBreakdownBody = document.getElementById('finIngresosBreakdownBody');
+
+const finEgresosBadge = document.getElementById('finEgresosBadge');
+const finEgrComprasNeto = document.getElementById('finEgrComprasNeto');
+const finEgrComprasIva = document.getElementById('finEgrComprasIva');
+const finEgrComprasBruto = document.getElementById('finEgrComprasBruto');
+const finEgrKardexIn = document.getElementById('finEgrKardexIn');
+const finEgrCostoVentas = document.getElementById('finEgrCostoVentas');
+const finEgrMermas = document.getElementById('finEgrMermas');
+const finEgrTotalConsolidado = document.getElementById('finEgrTotalConsolidado');
+const finEgresosBreakdownBody = document.getElementById('finEgresosBreakdownBody');
+
+const finMonthlyTableBadge = document.getElementById('finMonthlyTableBadge');
+const finMonthlyTableBody = document.getElementById('finMonthlyTableBody');
+
+const finIvaStatusBadge = document.getElementById('finIvaStatusBadge');
+const finTaxIvaDebito = document.getElementById('finTaxIvaDebito');
+const finTaxIvaCredito = document.getElementById('finTaxIvaCredito');
+const finTaxIvaMerma = document.getElementById('finTaxIvaMerma');
+const finTaxIvaResultadoRow = document.getElementById('finTaxIvaResultadoRow');
+const finTaxIvaResultadoLabel = document.getElementById('finTaxIvaResultadoLabel');
+const finTaxIvaResultadoValor = document.getElementById('finTaxIvaResultadoValor');
+const finLossByTypeBody = document.getElementById('finLossByTypeBody');
+
+const finMermaTotalBadge = document.getElementById('finMermaTotalBadge');
+const finMermaHistoryBody = document.getElementById('finMermaHistoryBody');
+
+function renderFinanceComparisonChart(series = [], totals = {}, periodLabel = '') {
+  if (!finChartContainer) return;
+
+  if (finChartTitle) {
+    finChartTitle.textContent = `Evolución Mensual: Ingresos vs. Egresos y Pérdidas (${periodLabel})`;
+  }
+  if (finChartBadge) {
+    finChartBadge.textContent = `${series.length} mes(es) analizado(s)`;
+  }
+
+  if (!series.length) {
+    finChartContainer.innerHTML = `<div class="empty-cell">No hay datos financieros para el período seleccionado.</div>`;
+    return;
+  }
+
+  const maxVal = Math.max(
+    ...series.map((m) =>
+      Math.max(
+        Number(m.ingresos_brutos) || 0,
+        Number(m.egresos_operativos_mes) || 0,
+        Number(m.costo_perdida_total) || 0
+      )
+    ),
+    1
+  );
+
+  const svgW = 680;
+  const svgH = 225;
+  const padL = 54;
+  const padR = 20;
+  const padT = 26;
+  const padB = 40;
+  const plotW = svgW - padL - padR;
+  const plotH = svgH - padT - padB;
+  const groupW = plotW / series.length;
+
+  const gridLevels = [0, 0.5, 1];
+  const gridSvg = gridLevels
+    .map((lvl) => {
+      const gy = padT + plotH - lvl * plotH;
+      const labelVal = formatCompactCurrency(lvl * maxVal);
+      return `
+        <line x1="${padL}" y1="${gy.toFixed(1)}" x2="${svgW - padR}" y2="${gy.toFixed(1)}" stroke="rgba(148, 163, 184, 0.16)" stroke-dasharray="3 3" />
+        <text x="${padL - 6}" y="${(gy + 3.5).toFixed(1)}" text-anchor="end" fill="#94a3b8" font-size="9.5" font-family="monospace">${escapeHtml(labelVal)}</text>
+      `;
+    })
+    .join('');
+
+  const barsSvg = series
+    .map((m, idx) => {
+      const ing = Number(m.ingresos_brutos) || 0;
+      const egr = Number(m.egresos_operativos_mes) || 0;
+      const mer = Number(m.costo_perdida_total) || 0;
+
+      const centerX = padL + groupW * idx + groupW / 2;
+      const singleBarW = Math.max(6, Math.min(22, groupW * 0.24));
+      const gap = 3;
+      const totalClusterW = singleBarW * 3 + gap * 2;
+      const startX = centerX - totalClusterW / 2;
+
+      const hIng = Math.max((ing / maxVal) * plotH, ing > 0 ? 4 : 1.5);
+      const yIng = padT + plotH - hIng;
+
+      const hEgr = Math.max((egr / maxVal) * plotH, egr > 0 ? 4 : 1.5);
+      const yEgr = padT + plotH - hEgr;
+
+      const hMer = Math.max((mer / maxVal) * plotH, mer > 0 ? 4 : 1.5);
+      const yMer = padT + plotH - hMer;
+
+      return `
+        <g class="chart-fin-group">
+          <title>${escapeHtml(m.etiqueta_larga)} — Ingresos: ${formatCurrency(ing)} | Egresos: ${formatCurrency(egr)} | Pérdidas Merma: ${formatCurrency(mer)}</title>
+          <rect x="${startX.toFixed(1)}" y="${yIng.toFixed(1)}" width="${singleBarW.toFixed(1)}" height="${hIng.toFixed(1)}" rx="3" fill="rgba(16, 185, 129, 0.55)" stroke="#10b981" stroke-width="1" />
+          <rect x="${(startX + singleBarW + gap).toFixed(1)}" y="${yEgr.toFixed(1)}" width="${singleBarW.toFixed(1)}" height="${hEgr.toFixed(1)}" rx="3" fill="rgba(245, 158, 11, 0.52)" stroke="#f59e0b" stroke-width="1" />
+          <rect x="${(startX + (singleBarW + gap) * 2).toFixed(1)}" y="${yMer.toFixed(1)}" width="${singleBarW.toFixed(1)}" height="${hMer.toFixed(1)}" rx="3" fill="rgba(239, 68, 68, 0.55)" stroke="#ef4444" stroke-width="1" />
+          <text x="${centerX.toFixed(1)}" y="${svgH - 18}" text-anchor="middle" fill="${m.es_mes_actual ? '#60a5fa' : '#cbd5e1'}" font-size="9.5" font-weight="${m.es_mes_actual ? '700' : '500'}">${escapeHtml(m.etiqueta_corta)}</text>
+          <text x="${centerX.toFixed(1)}" y="${svgH - 5}" text-anchor="middle" fill="#64748b" font-size="8.5" font-family="monospace">${ing > 0 ? escapeHtml(formatCompactCurrency(ing)) : '$0'}</text>
+        </g>
+      `;
+    })
+    .join('');
+
+  const balanceGlobal = Number(totals.balance_flujo_caja) || 0;
+  const balClass = balanceGlobal > 0 ? 'up' : balanceGlobal < 0 ? 'down' : 'neutral';
+  const balSign = balanceGlobal > 0 ? '+' : '';
+
+  finChartContainer.innerHTML = `
+    <div class="trend-banner ${balClass}">
+      <div class="trend-banner-main">
+        <span class="trend-direction-pill ${balClass}">
+          Balance Ingresos vs. Egresos: ${balSign}${formatCurrency(balanceGlobal)}
+        </span>
+        <span class="trend-banner-text">
+          <strong>Ingresos:</strong> ${formatCurrency(totals.ingresos_brutos || 0)} ·
+          <strong>Egresos:</strong> ${formatCurrency(totals.egresos_operativos_totales || 0)} ·
+          <strong>Pérdidas Merma:</strong> ${formatCurrency(totals.costo_perdida_total || 0)}
+        </span>
+      </div>
+      <div class="trend-legend">
+        <span class="legend-item"><i class="legend-dot up"></i> Ingresos Brutos</span>
+        <span class="legend-item"><i class="legend-dot" style="background: #f59e0b;"></i> Egresos / Costos</span>
+        <span class="legend-item"><i class="legend-dot down"></i> Pérdidas Merma</span>
+      </div>
+    </div>
+
+    <div class="svg-chart-wrapper">
+      <svg viewBox="0 0 ${svgW} ${svgH}" class="comparison-svg-chart" role="img" aria-label="Gráfico comparativo de ingresos, egresos y mermas">
+        ${gridSvg}
+        ${barsSvg}
+      </svg>
+    </div>
+
+    <div class="chart-summary-strip">
+      <div class="chart-summary-item">
+        <span class="chart-summary-label">Ingresos Brutos (${totals.periodMonths || 1}M)</span>
+        <strong class="chart-summary-value text-emerald font-mono">${formatCurrency(totals.ingresos_brutos || 0)}</strong>
+      </div>
+      <div class="chart-summary-item">
+        <span class="chart-summary-label">Egresos Operativos (${totals.periodMonths || 1}M)</span>
+        <strong class="chart-summary-value text-amber font-mono">${formatCurrency(totals.egresos_operativos_totales || 0)}</strong>
+      </div>
+      <div class="chart-summary-item">
+        <span class="chart-summary-label">Utilidad Neta Real (Tras Mermas)</span>
+        <strong class="chart-summary-value ${Number(totals.utilidad_neta_despues_mermas) >= 0 ? 'text-emerald' : 'text-danger'} font-mono">${formatCurrency(totals.utilidad_neta_despues_mermas || 0)}</strong>
+      </div>
+      <div class="chart-summary-item">
+        <span class="chart-summary-label">Pérdida Total por Mermas</span>
+        <strong class="chart-summary-value text-danger font-mono">${formatCurrency(totals.costo_perdida_total || 0)}</strong>
+      </div>
+    </div>
+  `;
+}
+
+function renderFinanceSection(data = {}) {
+  const t = data.totals || {};
+  const series = data.monthlySeries || [];
+  const pLabel = data.periodLabel || 'Mes Actual';
+  const pMonths = Number(data.periodMonths) || 1;
+  const tagPeriodo = pMonths === 1 ? 'del Mes' : `(${pMonths} Meses)`;
+
+  if (finPeriodSubtitle) {
+    finPeriodSubtitle.textContent = `Mostrando ${pLabel}: ingresos y egresos por separado, balance de IVA (19%) y pérdidas por merma o baja de producto.`;
+  }
+
+  // 1. KPIs superiores
+  if (finKpiIngresosLabel) finKpiIngresosLabel.textContent = `Ingresos ${tagPeriodo} (Bruto)`;
+  if (finKpiIngresosMonto) finKpiIngresosMonto.textContent = formatCurrency(t.ingresos_brutos);
+  if (finKpiIngresosMeta) {
+    finKpiIngresosMeta.textContent = `Neto: ${formatCurrency(t.ventas_neto)} · ${t.cantidad_ventas || 0} venta(s) (${formatNumber(t.unidades_vendidas)} unid.)`;
+  }
+
+  if (finKpiEgresosLabel) finKpiEgresosLabel.textContent = `Egresos ${tagPeriodo} (Por Separado)`;
+  if (finKpiEgresosMonto) finKpiEgresosMonto.textContent = formatCurrency(t.egresos_operativos_totales);
+  if (finKpiEgresosMeta) {
+    finKpiEgresosMeta.textContent = `Compras: ${formatCurrency(t.egresos_compras_bruto)} · Costo vtas: ${formatCurrency(t.costo_ventas_historico)}`;
+  }
+
+  if (finKpiIvaLabel) finKpiIvaLabel.textContent = `Balance de IVA ${tagPeriodo}`;
+  const ivaPorPagar = Number(t.iva_neto_a_pagar) || 0;
+  const ivaRemanente = Number(t.remanente_credito_iva) || 0;
+  if (finKpiIvaMonto) {
+    if (ivaRemanente > 0) {
+      finKpiIvaMonto.textContent = `-${formatCurrency(ivaRemanente)}`;
+      finKpiIvaMonto.className = 'kpi-value text-emerald';
+    } else {
+      finKpiIvaMonto.textContent = formatCurrency(ivaPorPagar);
+      finKpiIvaMonto.className = 'kpi-value';
+    }
+  }
+  if (finKpiIvaMeta) {
+    finKpiIvaMeta.textContent = `Débito: ${formatCurrency(t.iva_debito_ventas)} · Crédito: ${formatCurrency(t.iva_credito_compras)}`;
+  }
+
+  if (finKpiMermaLabel) finKpiMermaLabel.textContent = `Pérdidas por Merma ${tagPeriodo}`;
+  if (finKpiMermaMonto) finKpiMermaMonto.textContent = formatCurrency(t.costo_perdida_total);
+  if (finKpiMermaMeta) {
+    finKpiMermaMeta.textContent = `${t.eventos_perdida || 0} evento(s) · ${formatNumber(t.unidades_perdidas)} unid. dadas de baja`;
+  }
+
+  // 2. Gráfico comparativo mensual
+  renderFinanceComparisonChart(series, t, pLabel);
+
+  // 3. Panel Izquierdo: Ingresos por separado
+  if (finIngresosBadge) finIngresosBadge.textContent = `${formatCurrency(t.ingresos_brutos)} bruto`;
+  if (finIngNeto) finIngNeto.textContent = formatCurrency(t.ventas_neto);
+  if (finIngIva) finIngIva.textContent = formatCurrency(t.iva_debito_ventas);
+  if (finIngDescuentos) finIngDescuentos.textContent = `-${formatCurrency(t.descuento_global)}`;
+  if (finIngTotalBruto) finIngTotalBruto.textContent = formatCurrency(t.ingresos_brutos);
+
+  if (finIngresosBreakdownBody) {
+    const docsRows = data.ventasPorTipoDoc || [];
+    const pagosRows = data.ventasPorMetodoPago || [];
+    const htmlRows = [];
+
+    for (const d of docsRows) {
+      htmlRows.push(`
+        <tr>
+          <td>
+            <div class="cell-primary">Doc: ${escapeHtml(d.tipo_documento)}</div>
+            <div class="cell-secondary">Documento tributario / interno</div>
+          </td>
+          <td class="text-right font-mono">${d.cantidad_docs} doc(s)</td>
+          <td class="text-right font-mono">${formatCurrency(d.subtotal_neto)}</td>
+          <td class="text-right font-mono">${formatCurrency(d.total_iva)}</td>
+          <td class="text-right font-mono text-emerald">${formatCurrency(d.total_venta)}</td>
+        </tr>
+      `);
+    }
+
+    for (const p of pagosRows) {
+      htmlRows.push(`
+        <tr>
+          <td>
+            <div class="cell-primary">Pago: ${escapeHtml(p.metodo_pago)}</div>
+            <div class="cell-secondary">Recaudación en caja (<code>pagos_venta</code>)</div>
+          </td>
+          <td class="text-right font-mono">${p.cantidad_ventas} vta(s)</td>
+          <td class="text-right font-mono cell-secondary">—</td>
+          <td class="text-right font-mono cell-secondary">—</td>
+          <td class="text-right font-mono">${formatCurrency(p.monto_recaudado)}</td>
+        </tr>
+      `);
+    }
+
+    finIngresosBreakdownBody.innerHTML = htmlRows.length
+      ? htmlRows.join('')
+      : `<tr><td colspan="5" class="empty-cell">Sin ingresos registrados en este período.</td></tr>`;
+  }
+
+  // 4. Panel Derecho: Egresos por separado
+  if (finEgresosBadge) finEgresosBadge.textContent = `${formatCurrency(t.egresos_operativos_totales)} egresos`;
+  if (finEgrComprasNeto) finEgrComprasNeto.textContent = formatCurrency(t.compras_neto);
+  if (finEgrComprasIva) finEgrComprasIva.textContent = formatCurrency(t.iva_credito_compras);
+  if (finEgrComprasBruto) finEgrComprasBruto.textContent = formatCurrency(t.egresos_compras_bruto);
+  if (finEgrKardexIn) finEgrKardexIn.textContent = formatCurrency(t.costo_entradas_kardex_sin_doc);
+  if (finEgrCostoVentas) finEgrCostoVentas.textContent = formatCurrency(t.costo_ventas_historico);
+  if (finEgrMermas) finEgrMermas.textContent = formatCurrency(t.costo_perdida_total);
+  if (finEgrTotalConsolidado) finEgrTotalConsolidado.textContent = formatCurrency(t.egresos_operativos_totales);
+
+  if (finEgresosBreakdownBody) {
+    const comprasDocs = data.comprasPorTipoDoc || [];
+    const egrRows = [];
+
+    for (const c of comprasDocs) {
+      egrRows.push(`
+        <tr>
+          <td>
+            <div class="cell-primary">Compra: ${escapeHtml(c.tipo_documento)}</div>
+            <div class="cell-secondary">Órdenes recibidas en tabla <code>compras</code></div>
+          </td>
+          <td class="text-right font-mono">${c.cantidad_docs} doc(s)</td>
+          <td class="text-right font-mono">${formatCurrency(c.total_neto)}</td>
+          <td class="text-right font-mono text-emerald">${formatCurrency(c.total_iva)}</td>
+          <td class="text-right font-mono text-amber">${formatCurrency(c.total_compra)}</td>
+        </tr>
+      `);
+    }
+
+    if (Number(t.costo_entradas_kardex_sin_doc) > 0) {
+      egrRows.push(`
+        <tr>
+          <td>
+            <div class="cell-primary">Entradas de Bodega Directas (<code>ENTRADA_COMPRA</code>)</div>
+            <div class="cell-secondary">Reposición de inventario registrada directamente en Kardex</div>
+          </td>
+          <td class="text-right font-mono">Kardex</td>
+          <td class="text-right font-mono">${formatCurrency(t.costo_entradas_kardex_sin_doc)}</td>
+          <td class="text-right font-mono cell-secondary">$0</td>
+          <td class="text-right font-mono text-amber">${formatCurrency(t.costo_entradas_kardex_sin_doc)}</td>
+        </tr>
+      `);
+    }
+
+    if (Number(t.costo_ventas_historico) > 0) {
+      egrRows.push(`
+        <tr>
+          <td>
+            <div class="cell-primary">Costo Histórico de Mercadería Vendida</div>
+            <div class="cell-secondary">Suma de <code>costo_unitario_historico * cantidad</code> en ventas</div>
+          </td>
+          <td class="text-right font-mono">${formatNumber(t.unidades_vendidas)} unid.</td>
+          <td class="text-right font-mono">${formatCurrency(t.costo_ventas_historico)}</td>
+          <td class="text-right font-mono cell-secondary">—</td>
+          <td class="text-right font-mono">${formatCurrency(t.costo_ventas_historico)}</td>
+        </tr>
+      `);
+    }
+
+    if (Number(t.costo_perdida_total) > 0) {
+      egrRows.push(`
+        <tr>
+          <td>
+            <div class="cell-primary text-danger">Pérdidas por Merma / Baja de Producto</div>
+            <div class="cell-secondary">Merma (${formatCurrency(t.costo_merma)}) + Ajuste Negativo (${formatCurrency(t.costo_ajuste_negativo)})</div>
+          </td>
+          <td class="text-right font-mono">${t.eventos_perdida} baja(s)</td>
+          <td class="text-right font-mono text-danger">${formatCurrency(t.costo_perdida_total)}</td>
+          <td class="text-right font-mono text-danger">${formatCurrency(t.iva_estimado_perdida)}</td>
+          <td class="text-right font-mono text-danger">${formatCurrency(t.costo_perdida_total)}</td>
+        </tr>
+      `);
+    }
+
+    finEgresosBreakdownBody.innerHTML = egrRows.length
+      ? egrRows.join('')
+      : `<tr><td colspan="5" class="empty-cell">Sin egresos ni costos registrados en este período.</td></tr>`;
+  }
+
+  // 5. Tabla Mensual Desglosada (1, 3, 6 o 12 meses)
+  if (finMonthlyTableBadge) {
+    finMonthlyTableBadge.textContent = `${series.length} mes(es)`;
+  }
+  if (finMonthlyTableBody) {
+    if (!series.length) {
+      finMonthlyTableBody.innerHTML = `<tr><td colspan="9" class="empty-cell">No hay períodos mensuales para mostrar.</td></tr>`;
+    } else {
+      finMonthlyTableBody.innerHTML = series
+        .slice()
+        .reverse()
+        .map((m) => {
+          const utilClass =
+            Number(m.utilidad_neta_despues_mermas) > 0
+              ? 'text-emerald'
+              : Number(m.utilidad_neta_despues_mermas) < 0
+              ? 'text-danger'
+              : '';
+          return `
+            <tr>
+              <td>
+                <div class="cell-primary">${escapeHtml(m.etiqueta_larga)} ${m.es_mes_actual ? '<span class="status-tag info">Actual</span>' : ''}</div>
+                <div class="cell-secondary">${m.cantidad_ventas} venta(s) · ${m.cantidad_compras} compra(s) · ${m.eventos_perdida} merma(s)</div>
+              </td>
+              <td class="text-right font-mono">${formatCurrency(m.ventas_neto)}</td>
+              <td class="text-right font-mono text-amber">${formatCurrency(m.iva_debito_ventas)}</td>
+              <td class="text-right font-mono text-emerald"><strong>${formatCurrency(m.ingresos_brutos)}</strong></td>
+              <td class="text-right font-mono text-amber">${formatCurrency(m.adquisicion_inventario_mes)}</td>
+              <td class="text-right font-mono text-emerald">${formatCurrency(m.iva_credito_compras)}</td>
+              <td class="text-right font-mono">${formatCurrency(m.costo_ventas_historico)}</td>
+              <td class="text-right font-mono ${Number(m.costo_perdida_total) > 0 ? 'text-danger' : ''}">${formatCurrency(m.costo_perdida_total)}</td>
+              <td class="text-right font-mono ${utilClass}"><strong>${formatCurrency(m.utilidad_neta_despues_mermas)}</strong></td>
+            </tr>
+          `;
+        })
+        .join('');
+    }
+  }
+
+  // 6. Estado de IVA y Resumen de Pérdidas por Tipo
+  if (finTaxIvaDebito) finTaxIvaDebito.textContent = formatCurrency(t.iva_debito_ventas);
+  if (finTaxIvaCredito) finTaxIvaCredito.textContent = formatCurrency(t.iva_credito_compras);
+  if (finTaxIvaMerma) finTaxIvaMerma.textContent = formatCurrency(t.iva_estimado_perdida);
+
+  if (ivaRemanente > 0) {
+    if (finIvaStatusBadge) {
+      finIvaStatusBadge.textContent = 'Remanente Crédito Fiscal a Favor';
+      finIvaStatusBadge.className = 'panel-badge success-badge';
+    }
+    if (finTaxIvaResultadoLabel) {
+      finTaxIvaResultadoLabel.textContent = 'Remanente de Crédito Fiscal IVA a Favor:';
+    }
+    if (finTaxIvaResultadoValor) {
+      finTaxIvaResultadoValor.textContent = formatCurrency(ivaRemanente);
+    }
+    if (finTaxIvaResultadoRow) {
+      finTaxIvaResultadoRow.style.color = '#34d399';
+    }
+  } else {
+    if (finIvaStatusBadge) {
+      finIvaStatusBadge.textContent = ivaPorPagar > 0 ? 'IVA Neto a Pagar (F29)' : 'IVA en $0';
+      finIvaStatusBadge.className = ivaPorPagar > 0 ? 'panel-badge warning' : 'panel-badge info';
+    }
+    if (finTaxIvaResultadoLabel) {
+      finTaxIvaResultadoLabel.textContent = 'IVA Neto Determinado a Pagar (Débito - Crédito):';
+    }
+    if (finTaxIvaResultadoValor) {
+      finTaxIvaResultadoValor.textContent = formatCurrency(ivaPorPagar);
+    }
+    if (finTaxIvaResultadoRow) {
+      finTaxIvaResultadoRow.style.color = ivaPorPagar > 0 ? '#fbbf24' : '#34d399';
+    }
+  }
+
+  if (finLossByTypeBody) {
+    const lossTypes = data.resumenPerdidasPorTipo || [];
+    if (!lossTypes.length) {
+      finLossByTypeBody.innerHTML = `
+        <tr>
+          <td colspan="5" class="empty-cell">No se registran mermas ni bajas de producto (<code>MERMA</code> / <code>AJUSTE_NEGATIVO</code>) en este período.</td>
+        </tr>
+      `;
+    } else {
+      finLossByTypeBody.innerHTML = lossTypes
+        .map((lt) => {
+          const badgeClass = lt.tipo_movimiento === 'MERMA' ? 'danger' : 'warning';
+          const labelTipo =
+            lt.tipo_movimiento === 'MERMA'
+              ? 'MERMA (Daño / Vencimiento / Robo)'
+              : 'AJUSTE_NEGATIVO (Faltante de Inventario)';
+          return `
+            <tr>
+              <td>
+                <span class="status-tag ${badgeClass}">${escapeHtml(lt.tipo_movimiento)}</span>
+                <div class="cell-secondary">${escapeHtml(labelTipo)}</div>
+              </td>
+              <td class="text-right font-mono">${lt.cantidad_eventos} evento(s)</td>
+              <td class="text-right font-mono">${formatNumber(lt.total_unidades)} unid.</td>
+              <td class="text-right font-mono text-danger"><strong>${formatCurrency(lt.costo_neto_perdido)}</strong></td>
+              <td class="text-right font-mono text-amber">${formatCurrency(lt.ingreso_potencial_no_percibido)}</td>
+            </tr>
+          `;
+        })
+        .join('');
+    }
+  }
+
+  // 7. Historial detallado de pérdidas por merma o pérdida de producto
+  if (finMermaTotalBadge) {
+    finMermaTotalBadge.textContent = `${formatCurrency(t.costo_perdida_total)} en pérdidas (${t.eventos_perdida || 0})`;
+  }
+  if (finMermaHistoryBody) {
+    const lossItems = data.detalleMovimientosPerdida || [];
+    if (!lossItems.length) {
+      finMermaHistoryBody.innerHTML = `
+        <tr>
+          <td colspan="6" class="empty-cell">Sin movimientos de merma o pérdida de productos en el período seleccionado.</td>
+        </tr>
+      `;
+    } else {
+      finMermaHistoryBody.innerHTML = lossItems
+        .map((item) => {
+          const tagClass = item.tipo_movimiento === 'MERMA' ? 'danger' : 'warning';
+          return `
+            <tr>
+              <td>
+                <div class="cell-primary font-mono">${escapeHtml(item.fecha)}</div>
+                <div><span class="status-tag ${tagClass}">${escapeHtml(item.tipo_movimiento)}</span></div>
+              </td>
+              <td>
+                <div class="cell-primary">${escapeHtml(item.producto_nombre)}</div>
+                <div class="cell-secondary">SKU: ${escapeHtml(item.producto_sku || `ID #${item.id_producto}`)}</div>
+              </td>
+              <td>
+                <div class="cell-primary">${escapeHtml(item.motivo || 'Sin motivo')}</div>
+                <div class="cell-secondary">${escapeHtml(item.referencia_origen || 'Kardex')} · ${escapeHtml(item.usuario_nombre)}</div>
+              </td>
+              <td class="text-right font-mono">-${formatNumber(item.cantidad)} ${escapeHtml(item.unidad_medida)}</td>
+              <td class="text-right font-mono">${formatCurrency(item.costo_unitario_aplicado)}</td>
+              <td class="text-right font-mono text-danger"><strong>${formatCurrency(item.costo_total_perdida)}</strong></td>
+            </tr>
+          `;
+        })
+        .join('');
+    }
+  }
+}
+
+async function loadFinanceSection(months = activeFinanceMonths) {
+  activeFinanceMonths = [1, 3, 6, 12].includes(Number(months)) ? Number(months) : 1;
+
+  financePeriodBtns.forEach((btn) => {
+    btn.classList.toggle('active', Number(btn.dataset.finMonths) === activeFinanceMonths);
+  });
+
+  if (refreshFinanceBtn) {
+    refreshFinanceBtn.disabled = true;
+    refreshFinanceBtn.textContent = 'Actualizando...';
+  }
+
+  try {
+    const data = await window.LocalSqliteEngine.getFinanceSectionData({
+      meses: activeFinanceMonths,
+    });
+    if (data.database?.originalName) {
+      updateNavDbLabel(data.database);
+    }
+    renderFinanceSection(data);
+  } catch (err) {
+    if (err && err.status === 404) {
+      window.location.href = '/';
+      return;
+    }
+  } finally {
+    if (refreshFinanceBtn) {
+      refreshFinanceBtn.disabled = false;
+      refreshFinanceBtn.textContent = 'Actualizar finanzas';
+    }
+  }
+}
+
+financePeriodBtns.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const selectedMonths = Number(btn.dataset.finMonths) || 1;
+    loadFinanceSection(selectedMonths);
+  });
+});
+
+if (refreshFinanceBtn) {
+  refreshFinanceBtn.addEventListener('click', () => loadFinanceSection(activeFinanceMonths));
+}
+
 // Acciones de barra superior: Descargar .db local y Cerrar sesión en navegador
 if (downloadActiveDbBtn) {
   downloadActiveDbBtn.addEventListener('click', async () => {
@@ -2554,6 +3567,7 @@ navLinks.forEach((link) => {
     sectionVentas.classList.add('hidden');
     sectionKardex.classList.add('hidden');
     if (sectionClientes) sectionClientes.classList.add('hidden');
+    if (sectionFinanzas) sectionFinanzas.classList.add('hidden');
     sectionPlaceholder.classList.add('hidden');
 
     if (section === 'inicio') {
@@ -2571,6 +3585,9 @@ navLinks.forEach((link) => {
     } else if (section === 'clientes' && sectionClientes) {
       sectionClientes.classList.remove('hidden');
       loadClientsSection();
+    } else if (section === 'finanzas' && sectionFinanzas) {
+      sectionFinanzas.classList.remove('hidden');
+      loadFinanceSection(activeFinanceMonths);
     } else {
       const info = moduleDescriptions[section] || { title: section, desc: '' };
       moduleTitle.textContent = info.title;
@@ -2587,6 +3604,7 @@ backToHomeBtn.addEventListener('click', () => {
   sectionVentas.classList.add('hidden');
   sectionKardex.classList.add('hidden');
   if (sectionClientes) sectionClientes.classList.add('hidden');
+  if (sectionFinanzas) sectionFinanzas.classList.add('hidden');
   sectionInicio.classList.remove('hidden');
 });
 

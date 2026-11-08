@@ -57,6 +57,12 @@
             Clientes y Proveedores
           </a>
         </li>
+        <li>
+          <a href="#finanzas" class="nav-link" data-section="finanzas">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Finanzas
+          </a>
+        </li>
       </ul>
 
       <div class="navbar-actions">
@@ -82,7 +88,7 @@
         <div>
           <span class="badge">Resumen Operativo</span>
           <h1>Panel de Inicio</h1>
-          <p class="subtitle-left">Ingresos del día, mes actual, acumulado anual, comparativa mensual, avisos de stock clasificados (±7) y Top 5 productos más vendidos.</p>
+          <p class="subtitle-left">Ingresos del día, mes actual, acumulado anual, evolución de los últimos 13 meses, comparativa de los 30 días anteriores a hoy, avisos de stock clasificados (±7) y Top 5 productos más vendidos.</p>
         </div>
         <button type="button" class="btn btn-refresh" id="refreshBtn">
           Actualizar datos
@@ -136,35 +142,35 @@
         </article>
       </div>
 
-      <!-- Paneles Financieros: Gráfico de Ingresos del Año y Gráfico Comparativo con el Mes Pasado -->
+      <!-- Paneles Financieros: Gráfico de Ingresos de los Últimos 13 Meses y Gráfico Comparativo de 30 Días Anteriores -->
       <div class="dashboard-panels">
-        <!-- Gráfico 1: Ingresos del Año (Curva de Ascenso / Descenso Mensual) -->
+        <!-- Gráfico 1: Ingresos de los Últimos 13 Meses (Curva de Ascenso / Descenso Mensual) -->
         <section class="panel-card">
           <div class="panel-header">
             <div>
-              <h2 id="annualIncomeTitle">Gráfico de Ingresos del Año</h2>
-              <p class="panel-subtitle">Evolución mensual (Ene–Dic) con curva de ascenso o descenso de ingresos y utilidad</p>
+              <h2 id="annualIncomeTitle">Gráfico de Ingresos (Últimos 13 Meses)</h2>
+              <p class="panel-subtitle">Evolución mensual de los últimos 13 meses con curva de ascenso o descenso de ingresos, utilidad e interanual</p>
             </div>
-            <span class="panel-badge success-badge" id="annualIncomeBadge">$0 anual</span>
+            <span class="panel-badge success-badge" id="annualIncomeBadge">$0 (13 meses)</span>
           </div>
 
           <div id="annualIncomeChartContainer" class="chart-panel-body">
-            <div class="empty-cell">Cargando gráfico de ingresos del año...</div>
+            <div class="empty-cell">Cargando gráfico de los últimos 13 meses...</div>
           </div>
         </section>
 
-        <!-- Gráfico 2: Comparativa de Ventas con el Mes Pasado (Ascenso / Descenso) -->
+        <!-- Gráfico 2: Comparativa de los 30 Días Anteriores al Día de Hoy -->
         <section class="panel-card">
           <div class="panel-header">
             <div>
-              <h2 id="monthCompTitle">Gráfico Comparativo: Mes Actual vs. Mes Pasado</h2>
-              <p class="panel-subtitle" id="monthCompSubtitle">Tendencia de ascenso o descenso en ingresos, utilidad, ticket promedio y unidades</p>
+              <h2 id="monthCompTitle">Gráfico Comparativo: 30 Días Anteriores a Hoy</h2>
+              <p class="panel-subtitle" id="monthCompSubtitle">Evolución diaria de los 30 días previos al día de hoy y comparativa con Hoy</p>
             </div>
-            <span class="panel-badge info" id="monthCompBadge">Mes actual vs. anterior</span>
+            <span class="panel-badge info" id="monthCompBadge">30 días anteriores vs. Hoy</span>
           </div>
 
           <div id="monthCompChartContainer" class="chart-panel-body">
-            <div class="empty-cell">Cargando gráfico comparativo mensual...</div>
+            <div class="empty-cell">Cargando gráfico de los 30 días anteriores...</div>
           </div>
         </section>
       </div>
@@ -629,12 +635,12 @@
 
             <div class="form-row-3">
               <div class="input-group">
-                <label for="npCosto">Costo Prom. ($) *</label>
-                <input type="number" step="any" min="0" id="npCosto" class="form-input" value="0" required />
+                <label for="npCosto">Costo Prom. ($, entero) *</label>
+                <input type="number" step="1" min="0" inputmode="numeric" id="npCosto" class="form-input font-mono" placeholder="Ingresa costo en $" required />
               </div>
               <div class="input-group">
-                <label for="npPrecioNeto">Precio Neto ($) *</label>
-                <input type="number" step="any" min="0" id="npPrecioNeto" class="form-input" value="0" required />
+                <label for="npPrecioNeto">Precio Neto ($, entero) *</label>
+                <input type="number" step="1" min="0" inputmode="numeric" id="npPrecioNeto" class="form-input font-mono" placeholder="Ingresa precio neto" required />
               </div>
               <div class="input-group">
                 <label for="npExento">Régimen IVA</label>
@@ -647,16 +653,16 @@
 
             <div class="form-row-3">
               <div class="input-group">
-                <label for="npPrecioFinal">Precio Venta Final ($) *</label>
-                <input type="number" step="any" min="0" id="npPrecioFinal" class="form-input" value="0" required />
+                <label for="npPrecioFinal">Precio Venta Final ($, entero) *</label>
+                <input type="number" step="1" min="0" inputmode="numeric" id="npPrecioFinal" class="form-input font-mono" placeholder="Ingresa precio final" required />
               </div>
               <div class="input-group">
-                <label for="npStockMinimo">Stock Mínimo *</label>
-                <input type="number" step="any" min="0" id="npStockMinimo" class="form-input" value="5" required />
+                <label for="npStockMinimo" id="npStockMinimoLabel">Stock Mínimo (entero UN/CAJA) *</label>
+                <input type="number" step="1" min="0" inputmode="numeric" id="npStockMinimo" class="form-input font-mono" placeholder="Ingresa stock mínimo" required />
               </div>
               <div class="input-group">
-                <label for="npStockInicial">Stock Inicial</label>
-                <input type="number" step="any" min="0" id="npStockInicial" class="form-input" value="0" required />
+                <label for="npStockInicial" id="npStockInicialLabel">Stock Inicial (entero UN/CAJA) *</label>
+                <input type="number" step="1" min="0" inputmode="numeric" id="npStockInicial" class="form-input font-mono" placeholder="Ingresa stock inicial" required />
               </div>
             </div>
 
@@ -719,15 +725,15 @@
                 </select>
               </div>
               <div class="input-group">
-                <label for="seCantidad">Cantidad a Ingresar (&gt; 0) *</label>
-                <input type="number" step="any" min="0.01" id="seCantidad" class="form-input" placeholder="Ej: 15" required />
+                <label for="seCantidad" id="seCantidadLabel">Cantidad a Ingresar (&gt; 0) *</label>
+                <input type="number" step="1" min="1" inputmode="numeric" id="seCantidad" class="form-input font-mono" placeholder="Ingresa cantidad manual" required />
               </div>
             </div>
 
             <div class="form-row-2">
               <div class="input-group">
-                <label for="seCostoUnitario">Costo Unitario Neto ($)</label>
-                <input type="number" step="any" min="0" id="seCostoUnitario" class="form-input" placeholder="Costo unitario de ingreso" />
+                <label for="seCostoUnitario">Costo Unitario Neto ($, entero) *</label>
+                <input type="number" step="1" min="0" inputmode="numeric" id="seCostoUnitario" class="form-input font-mono" placeholder="Ingresa costo unitario en $" required />
               </div>
               <div class="input-group">
                 <label for="seReferencia">Referencia Origen</label>
@@ -794,8 +800,8 @@
                 </select>
               </div>
               <div class="input-group">
-                <label for="slCantidad">Cantidad a Descontar (&gt; 0) *</label>
-                <input type="number" step="any" min="0.01" id="slCantidad" class="form-input" placeholder="Ej: 2" required />
+                <label for="slCantidad" id="slCantidadLabel">Cantidad a Descontar (&gt; 0) *</label>
+                <input type="number" step="1" min="1" inputmode="numeric" id="slCantidad" class="form-input font-mono" placeholder="Ingresa cantidad manual" required />
               </div>
             </div>
 
@@ -1243,6 +1249,332 @@
               <tbody id="clientsTableBody">
                 <tr>
                   <td colspan="4" class="empty-cell">Cargando clientes desde tu archivo .db local...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- Vista de Finanzas (Ingresos, Egresos por Separado, IVA y Pérdidas por Merma / Baja de Producto) -->
+    <section id="section-finanzas" class="dashboard-section hidden">
+      <div class="page-header">
+        <div>
+          <span class="badge">Control Financiero, Tributario (IVA) y Control de Mermas</span>
+          <h1>Sección de Finanzas</h1>
+          <p class="subtitle-left" id="finPeriodSubtitle">
+            Ingresos y egresos del mes por separado, balance de IVA (Débito vs. Crédito Fiscal) y pérdidas valorizadas por merma o pérdida de producto.
+          </p>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+          <!-- Selector de Período: Mes Actual (1), 3, 6 y 12 Meses -->
+          <div class="stock-alert-tabs" id="financePeriodTabs" role="tablist" aria-label="Período de consulta financiera">
+            <button type="button" class="stock-tab-btn active" data-fin-months="1" id="btnFinMonths1">
+              Mes Actual (1M)
+            </button>
+            <button type="button" class="stock-tab-btn" data-fin-months="3" id="btnFinMonths3">
+              3 Meses
+            </button>
+            <button type="button" class="stock-tab-btn" data-fin-months="6" id="btnFinMonths6">
+              6 Meses
+            </button>
+            <button type="button" class="stock-tab-btn" data-fin-months="12" id="btnFinMonths12">
+              12 Meses
+            </button>
+          </div>
+
+          <button type="button" class="btn btn-refresh" id="refreshFinanceBtn">
+            Actualizar finanzas
+          </button>
+        </div>
+      </div>
+
+      <!-- KPIs Principales de Finanzas -->
+      <div class="kpi-grid">
+        <article class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label" id="finKpiIngresosLabel">Ingresos Totales (Bruto)</span>
+            <span class="kpi-icon emerald">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            </span>
+          </div>
+          <div class="kpi-value text-emerald" id="finKpiIngresosMonto">$0</div>
+          <div class="kpi-meta" id="finKpiIngresosMeta">Neto: $0 · 0 ventas completadas</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label" id="finKpiEgresosLabel">Egresos y Costos (Por Separado)</span>
+            <span class="kpi-icon amber">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+            </span>
+          </div>
+          <div class="kpi-value text-amber" id="finKpiEgresosMonto">$0</div>
+          <div class="kpi-meta" id="finKpiEgresosMeta">Compras: $0 · Costo vtas: $0</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label" id="finKpiIvaLabel">Balance de IVA (19%)</span>
+            <span class="kpi-icon blue">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="6" y1="16" x2="12" y2="16"/></svg>
+            </span>
+          </div>
+          <div class="kpi-value" id="finKpiIvaMonto">$0</div>
+          <div class="kpi-meta" id="finKpiIvaMeta">Débito: $0 · Crédito: $0</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label" id="finKpiMermaLabel">Pérdidas por Merma / Baja</span>
+            <span class="kpi-icon purple" style="background: rgba(239, 68, 68, 0.15); color: #fca5a5;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </span>
+          </div>
+          <div class="kpi-value text-danger" id="finKpiMermaMonto">$0</div>
+          <div class="kpi-meta" id="finKpiMermaMeta">0 eventos · 0 unid. dadas de baja</div>
+        </article>
+      </div>
+
+      <!-- Gráfico Comparativo Mensual: Ingresos vs. Egresos vs. Pérdidas por Merma -->
+      <section class="panel-card">
+        <div class="panel-header">
+          <div>
+            <h2 id="finChartTitle">Evolución Mensual: Ingresos vs. Egresos y Pérdidas</h2>
+            <p class="panel-subtitle">Comparativa visual mes a mes separando los ingresos por ventas, egresos operativos/compras y pérdidas por merma</p>
+          </div>
+          <span class="panel-badge info" id="finChartBadge">Mes Actual</span>
+        </div>
+        <div id="finChartContainer" class="chart-panel-body">
+          <div class="empty-cell">Cargando gráfico financiero...</div>
+        </div>
+      </section>
+
+      <!-- Paneles Separados: Columna 1 = INGRESOS DEL PERÍODO | Columna 2 = EGRESOS DEL PERÍODO -->
+      <div class="dashboard-panels">
+        <!-- Panel Izquierdo: INGRESOS POR SEPARADO -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h2>Detalle de Ingresos (Por Separado)</h2>
+              <p class="panel-subtitle">Desglose de ventas completadas: monto neto, IVA débito fiscal, descuentos globales y recaudación por medio de pago</p>
+            </div>
+            <span class="panel-badge success-badge" id="finIngresosBadge">$0 bruto</span>
+          </div>
+
+          <div class="pos-totals-box" id="finIngresosSummaryBox">
+            <div class="pos-total-row">
+              <span>Ventas Netas (Sin IVA · <code>subtotal_neto</code>):</span>
+              <span class="font-mono" id="finIngNeto">$0</span>
+            </div>
+            <div class="pos-total-row">
+              <span>IVA Débito Fiscal Recaudado (19% · <code>total_iva</code>):</span>
+              <span class="font-mono" id="finIngIva">$0</span>
+            </div>
+            <div class="pos-total-row discount-row">
+              <span>Descuentos Globales Otorgados (<code>descuento_global</code>):</span>
+              <span class="font-mono" id="finIngDescuentos">-$0</span>
+            </div>
+            <div class="pos-total-row grand-total-row">
+              <span>TOTAL INGRESOS BRUTOS (<code>total_venta</code>):</span>
+              <span class="font-mono" id="finIngTotalBruto">$0</span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Tipo Documento / Medio de Pago</th>
+                  <th class="text-right">Docs / Operaciones</th>
+                  <th class="text-right">Neto</th>
+                  <th class="text-right">IVA (19%)</th>
+                  <th class="text-right">Total Recaudado</th>
+                </tr>
+              </thead>
+              <tbody id="finIngresosBreakdownBody">
+                <tr>
+                  <td colspan="5" class="empty-cell">Cargando desglose de ingresos...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Panel Derecho: EGRESOS POR SEPARADO -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h2>Detalle de Egresos y Costos (Por Separado)</h2>
+              <p class="panel-subtitle">Salidas por compras a proveedores (<code>compras</code>), ingresos de stock valorizados, costo histórico de lo vendido y pérdidas por merma</p>
+            </div>
+            <span class="panel-badge warning" id="finEgresosBadge">$0 egresos</span>
+          </div>
+
+          <div class="pos-totals-box" id="finEgresosSummaryBox">
+            <div class="pos-total-row">
+              <span>Compras a Proveedores Neto (<code>compras.total_neto</code>):</span>
+              <span class="font-mono" id="finEgrComprasNeto">$0</span>
+            </div>
+            <div class="pos-total-row">
+              <span>IVA Crédito Fiscal en Compras (<code>compras.total_iva</code>):</span>
+              <span class="font-mono" id="finEgrComprasIva">$0</span>
+            </div>
+            <div class="pos-total-row">
+              <span>Total Compras Documentadas (<code>compras.total_compra</code>):</span>
+              <span class="font-mono" id="finEgrComprasBruto">$0</span>
+            </div>
+            <div class="pos-total-row muted-row">
+              <span>Entradas de Bodega Directas en Kardex (<code>ENTRADA_COMPRA</code>):</span>
+              <span class="font-mono" id="finEgrKardexIn">$0</span>
+            </div>
+            <div class="pos-total-row muted-row">
+              <span>Costo Histórico de Productos Vendidos (<code>costo_unitario_historico</code>):</span>
+              <span class="font-mono" id="finEgrCostoVentas">$0</span>
+            </div>
+            <div class="pos-total-row discount-row">
+              <span>Pérdidas por Merma y Baja de Producto (<code>MERMA</code> / <code>AJUSTE_NEGATIVO</code>):</span>
+              <span class="font-mono text-danger" id="finEgrMermas">$0</span>
+            </div>
+            <div class="pos-total-row grand-total-row" style="color: #fbbf24;">
+              <span>TOTAL EGRESOS / SALIDAS DEL PERÍODO:</span>
+              <span class="font-mono" id="finEgrTotalConsolidado">$0</span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Concepto de Egreso / Documento</th>
+                  <th class="text-right">Registros</th>
+                  <th class="text-right">Monto Neto / Costo</th>
+                  <th class="text-right">IVA Crédito</th>
+                  <th class="text-right">Total Egreso</th>
+                </tr>
+              </thead>
+              <tbody id="finEgresosBreakdownBody">
+                <tr>
+                  <td colspan="5" class="empty-cell">Cargando desglose de egresos...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- Tabla Mensual Desglosada (Mes a Mes: 1, 3, 6 o 12 meses) -->
+      <section class="panel-card">
+        <div class="panel-header">
+          <div>
+            <h2>Desglose Mensual Separado: Ingresos, Egresos, IVA y Mermas</h2>
+            <p class="panel-subtitle">Comparativa detallada mes por mes para el período seleccionado (1, 3, 6 o 12 meses)</p>
+          </div>
+          <span class="panel-badge info" id="finMonthlyTableBadge">1 mes(es)</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Mes / Período</th>
+                <th class="text-right">Ingresos Netos</th>
+                <th class="text-right">IVA Débito (+)</th>
+                <th class="text-right">Ingresos Brutos</th>
+                <th class="text-right">Egresos Compras / Stock</th>
+                <th class="text-right">IVA Crédito (-)</th>
+                <th class="text-right">Costo Ventas</th>
+                <th class="text-right">Pérdida Mermas</th>
+                <th class="text-right">Utilidad Neta Real</th>
+              </tr>
+            </thead>
+            <tbody id="finMonthlyTableBody">
+              <tr>
+                <td colspan="9" class="empty-cell">Cargando tabla mensual de finanzas...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Paneles de IVA y Pérdidas por Merma / Pérdida de Producto -->
+      <div class="dashboard-panels">
+        <!-- Panel de Resumen Tributario de IVA -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h2>Estado de IVA del Período (19% Chile)</h2>
+              <p class="panel-subtitle">Cálculo de IVA Débito Fiscal (ventas), IVA Crédito Fiscal (compras recibidas) e IVA estimado perdido en mermas</p>
+            </div>
+            <span class="panel-badge info" id="finIvaStatusBadge">Balance IVA</span>
+          </div>
+
+          <div class="pos-totals-box">
+            <div class="pos-total-row">
+              <span>(+) IVA Débito Fiscal por Ventas (<code>ventas.total_iva</code>):</span>
+              <span class="font-mono text-amber" id="finTaxIvaDebito">$0</span>
+            </div>
+            <div class="pos-total-row">
+              <span>(-) IVA Crédito Fiscal por Compras (<code>compras.total_iva</code>):</span>
+              <span class="font-mono text-emerald" id="finTaxIvaCredito">$0</span>
+            </div>
+            <div class="pos-total-row muted-row">
+              <span>(i) IVA Estimado en Mermas / Pérdidas de Productos Afectos:</span>
+              <span class="font-mono text-danger" id="finTaxIvaMerma">$0</span>
+            </div>
+            <div class="pos-total-row grand-total-row" id="finTaxIvaResultadoRow">
+              <span id="finTaxIvaResultadoLabel">IVA Neto Determinado:</span>
+              <span class="font-mono" id="finTaxIvaResultadoValor">$0</span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Tipo de Movimiento</th>
+                  <th class="text-right">Eventos</th>
+                  <th class="text-right">Unidades Dadas de Baja</th>
+                  <th class="text-right">Pérdida al Costo</th>
+                  <th class="text-right">Ingreso Venta No Percibido</th>
+                </tr>
+              </thead>
+              <tbody id="finLossByTypeBody">
+                <tr>
+                  <td colspan="5" class="empty-cell">Cargando resumen de pérdidas por tipo...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Panel de Pérdidas por Merma o Pérdida de Producto -->
+        <section class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h2>Pérdidas por Merma o Pérdida de Producto</h2>
+              <p class="panel-subtitle">Historial y ranking de productos con bajas en Kardex (<code>MERMA</code> y <code>AJUSTE_NEGATIVO</code>) valorizados a su costo unitario</p>
+            </div>
+            <span class="panel-badge danger" id="finMermaTotalBadge">$0 en pérdidas</span>
+          </div>
+
+          <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Fecha / Tipo Baja</th>
+                  <th>Producto / SKU</th>
+                  <th>Motivo / Referencia</th>
+                  <th class="text-right">Cant.</th>
+                  <th class="text-right">Costo Unit.</th>
+                  <th class="text-right">Pérdida Total</th>
+                </tr>
+              </thead>
+              <tbody id="finMermaHistoryBody">
+                <tr>
+                  <td colspan="6" class="empty-cell">Cargando registros de merma y pérdidas de producto...</td>
                 </tr>
               </tbody>
             </table>

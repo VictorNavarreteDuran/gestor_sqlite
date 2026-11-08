@@ -239,8 +239,16 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
         'CREATE INDEX IF NOT EXISTS idx_pagos_venta_id_venta ON pagos_venta(id_venta);',
       ],
       [
+        'compras',
+        'CREATE INDEX IF NOT EXISTS idx_compras_estado_fecha ON compras(estado, fecha_emision);',
+      ],
+      [
         'movimientos_inventario',
         'CREATE INDEX IF NOT EXISTS idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, tipo_movimiento, fecha DESC, id_movimiento DESC);',
+      ],
+      [
+        'movimientos_inventario',
+        'CREATE INDEX IF NOT EXISTS idx_kardex_tipo_fecha ON movimientos_inventario(tipo_movimiento, fecha DESC);',
       ],
     ];
 
@@ -743,6 +751,30 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
       tomorrowDate.getMonth() + 1
     ).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
 
+    // Rango de los 30 días anteriores al día de hoy (desde hoy - 30 días hasta ayer inclusive)
+    const prev30StartDate = new Date(now.getFullYear(), mesActualIdx, now.getDate() - 30);
+    const prev30StartKey = `${prev30StartDate.getFullYear()}-${String(
+      prev30StartDate.getMonth() + 1
+    ).padStart(2, '0')}-${String(prev30StartDate.getDate()).padStart(2, '0')}`;
+    const prev30EndDate = new Date(now.getFullYear(), mesActualIdx, now.getDate() - 1);
+    const prev30EndKey = `${prev30EndDate.getFullYear()}-${String(
+      prev30EndDate.getMonth() + 1
+    ).padStart(2, '0')}-${String(prev30EndDate.getDate()).padStart(2, '0')}`;
+    const prev30RangeLabel = `${String(prev30StartDate.getDate()).padStart(2, '0')}/${String(
+      prev30StartDate.getMonth() + 1
+    ).padStart(2, '0')}/${prev30StartDate.getFullYear()} al ${String(
+      prev30EndDate.getDate()
+    ).padStart(2, '0')}/${String(prev30EndDate.getMonth() + 1).padStart(
+      2,
+      '0'
+    )}/${prev30EndDate.getFullYear()}`;
+    const prev30ShortRangeLabel = `${String(prev30StartDate.getDate()).padStart(
+      2,
+      '0'
+    )} ${MESES_NOMBRES_ES[prev30StartDate.getMonth()].slice(0, 3)} – ${String(
+      prev30EndDate.getDate()
+    ).padStart(2, '0')} ${MESES_NOMBRES_ES[prev30EndDate.getMonth()].slice(0, 3)}`;
+
     const nextMonthDate = new Date(now.getFullYear(), mesActualIdx + 1, 1);
     const mesSiguienteKey = `${nextMonthDate.getFullYear()}-${String(
       nextMonthDate.getMonth() + 1
@@ -753,6 +785,15 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
     const mesPasadoInicioIso = `${mesPasadoKey}-01`;
     const anioInicioIso = `${anioActual}-01-01`;
     const anioFinExclusivoIso = `${Number(anioActual) + 1}-01-01`;
+
+    // Rango de los últimos 13 meses (desde el mismo mes del año pasado hasta el mes actual inclusive)
+    const start13MonthsDate = new Date(now.getFullYear(), mesActualIdx - 12, 1);
+    const start13MonthsAnio = String(start13MonthsDate.getFullYear());
+    const start13MonthsMesIdx = start13MonthsDate.getMonth();
+    const start13MonthsMesNum = String(start13MonthsMesIdx + 1).padStart(2, '0');
+    const start13MonthsKey = `${start13MonthsAnio}-${start13MonthsMesNum}`;
+    const start13MonthsInicioIso = `${start13MonthsKey}-01`;
+    const rango13MesesLabel = `${MESES_NOMBRES_ES[start13MonthsMesIdx].slice(0, 3)} ${start13MonthsAnio} – ${mesActualNombre.slice(0, 3)} ${anioActual}`;
 
     const periodInfo = {
       hoyKey,
@@ -767,6 +808,8 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
       mesPasadoKey,
       mesPasadoNombre,
       mesPasadoLabel,
+      start13MonthsKey,
+      rango13MesesLabel,
     };
 
     const salesSummary = {
@@ -797,6 +840,7 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
     let annualIncomeByMonth = [];
     const annualTotals = {
       anio: anioActual,
+      rango_label: rango13MesesLabel,
       cantidad_ventas: 0,
       subtotal_neto: 0,
       total_iva: 0,
@@ -833,10 +877,55 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
       },
     };
 
+    const previous30DaysComparison = {
+      hoyKey,
+      hoyLabel,
+      rangoInicioKey: prev30StartKey,
+      rangoFinKey: prev30EndKey,
+      rangoLabel: prev30RangeLabel,
+      rangoCortoLabel: prev30ShortRangeLabel,
+      dias: [],
+      hoy: {
+        cantidad_ventas: 0,
+        subtotal_neto: 0,
+        total_iva: 0,
+        descuento_global: 0,
+        total_venta: 0,
+        ticket_promedio: 0,
+        unidades_vendidas: 0,
+        utilidad_estimada: 0,
+      },
+      ayer: {
+        fecha_key: prev30EndKey,
+        cantidad_ventas: 0,
+        total_venta: 0,
+        utilidad_estimada: 0,
+      },
+      acumulado30Dias: {
+        dias_con_ventas: 0,
+        cantidad_ventas: 0,
+        subtotal_neto: 0,
+        total_iva: 0,
+        descuento_global: 0,
+        total_venta: 0,
+        promedio_diario_venta: 0,
+        promedio_diario_utilidad: 0,
+        promedio_diario_ventas_docs: 0,
+        promedio_diario_unidades: 0,
+        ticket_promedio: 0,
+        unidades_vendidas: 0,
+        utilidad_estimada: 0,
+      },
+    };
+
     if (existingTables.has('ventas')) {
       const hoy = queryGet(
         db,
-        `SELECT COALESCE(SUM(total_venta), 0) AS monto, COUNT(*) AS cantidad
+        `SELECT COALESCE(SUM(total_venta), 0) AS monto,
+                COALESCE(SUM(subtotal_neto), 0) AS neto,
+                COALESCE(SUM(total_iva), 0) AS iva,
+                COALESCE(SUM(descuento_global), 0) AS descuento,
+                COUNT(*) AS cantidad
          FROM ventas
          WHERE estado = 'COMPLETADA' AND fecha_venta >= ? AND fecha_venta < ?`,
         [hoyKey, mananaKey]
@@ -884,6 +973,142 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
       salesSummary.ticketPromedio =
         salesSummary.totalCantidad > 0 ? salesSummary.totalMonto / salesSummary.totalCantidad : 0;
 
+      previous30DaysComparison.hoy.cantidad_ventas = salesSummary.hoyCantidad;
+      previous30DaysComparison.hoy.subtotal_neto = Number(hoy?.neto) || 0;
+      previous30DaysComparison.hoy.total_iva = Number(hoy?.iva) || 0;
+      previous30DaysComparison.hoy.descuento_global = Number(hoy?.descuento) || 0;
+      previous30DaysComparison.hoy.total_venta = salesSummary.hoyMonto;
+      previous30DaysComparison.hoy.ticket_promedio =
+        salesSummary.hoyCantidad > 0 ? salesSummary.hoyMonto / salesSummary.hoyCantidad : 0;
+
+      // Desglose diario de los 30 días anteriores al día de hoy (prev30StartKey <= fecha_venta < hoyKey)
+      const ventasPrev30Rows = queryAll(
+        db,
+        `SELECT SUBSTR(fecha_venta, 1, 10) AS fecha_dia,
+                COUNT(*) AS cantidad_ventas,
+                COALESCE(SUM(subtotal_neto), 0) AS subtotal_neto,
+                COALESCE(SUM(total_iva), 0) AS total_iva,
+                COALESCE(SUM(descuento_global), 0) AS descuento_global,
+                COALESCE(SUM(total_venta), 0) AS total_venta
+         FROM ventas
+         WHERE estado = 'COMPLETADA' AND fecha_venta >= ? AND fecha_venta < ?
+         GROUP BY SUBSTR(fecha_venta, 1, 10)
+         ORDER BY fecha_dia ASC`,
+        [prev30StartKey, hoyKey]
+      );
+
+      const detallePrev30Map = new Map();
+      if (existingTables.has('detalle_ventas')) {
+        const detallePrev30Rows = queryAll(
+          db,
+          `SELECT SUBSTR(v.fecha_venta, 1, 10) AS fecha_dia,
+                  COALESCE(SUM(dv.cantidad), 0) AS unidades_vendidas,
+                  COALESCE(SUM(dv.subtotal - (dv.costo_unitario_historico * dv.cantidad)), 0) AS utilidad_estimada
+           FROM ventas v
+           INNER JOIN detalle_ventas dv ON dv.id_venta = v.id_venta
+           WHERE v.estado = 'COMPLETADA' AND v.fecha_venta >= ? AND v.fecha_venta < ?
+           GROUP BY SUBSTR(v.fecha_venta, 1, 10)`,
+          [prev30StartKey, hoyKey]
+        );
+        for (const r of detallePrev30Rows) {
+          detallePrev30Map.set(String(r.fecha_dia), {
+            unidades_vendidas: Number(r.unidades_vendidas) || 0,
+            utilidad_estimada: Number(r.utilidad_estimada) || 0,
+          });
+        }
+
+        const hoyDetalleRow = queryGet(
+          db,
+          `SELECT COALESCE(SUM(dv.cantidad), 0) AS unidades_vendidas,
+                  COALESCE(SUM(dv.subtotal - (dv.costo_unitario_historico * dv.cantidad)), 0) AS utilidad_estimada
+           FROM ventas v
+           INNER JOIN detalle_ventas dv ON dv.id_venta = v.id_venta
+           WHERE v.estado = 'COMPLETADA' AND v.fecha_venta >= ? AND v.fecha_venta < ?`,
+          [hoyKey, mananaKey]
+        );
+        previous30DaysComparison.hoy.unidades_vendidas = Number(hoyDetalleRow?.unidades_vendidas) || 0;
+        previous30DaysComparison.hoy.utilidad_estimada = Number(hoyDetalleRow?.utilidad_estimada) || 0;
+      }
+
+      const ventasPrev30Map = new Map();
+      for (const r of ventasPrev30Rows) {
+        ventasPrev30Map.set(String(r.fecha_dia), r);
+      }
+
+      const dias30List = [];
+      for (let offset = 30; offset >= 1; offset--) {
+        const dObj = new Date(now.getFullYear(), mesActualIdx, now.getDate() - offset);
+        const fKey = `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${String(
+          dObj.getDate()
+        ).padStart(2, '0')}`;
+        const diaStr = String(dObj.getDate()).padStart(2, '0');
+        const mesStr = String(dObj.getMonth() + 1).padStart(2, '0');
+        const mesCorto = MESES_NOMBRES_ES[dObj.getMonth()].slice(0, 3);
+
+        const vRow = ventasPrev30Map.get(fKey);
+        const dRow = detallePrev30Map.get(fKey);
+
+        const cantidad_ventas = Number(vRow?.cantidad_ventas) || 0;
+        const subtotal_neto = Number(vRow?.subtotal_neto) || 0;
+        const total_iva = Number(vRow?.total_iva) || 0;
+        const descuento_global = Number(vRow?.descuento_global) || 0;
+        const total_venta = Number(vRow?.total_venta) || 0;
+        const unidades_vendidas = Number(dRow?.unidades_vendidas) || 0;
+        const utilidad_estimada = Number(dRow?.utilidad_estimada) || 0;
+
+        if (cantidad_ventas > 0 || total_venta > 0) {
+          previous30DaysComparison.acumulado30Dias.dias_con_ventas += 1;
+        }
+        previous30DaysComparison.acumulado30Dias.cantidad_ventas += cantidad_ventas;
+        previous30DaysComparison.acumulado30Dias.subtotal_neto += subtotal_neto;
+        previous30DaysComparison.acumulado30Dias.total_iva += total_iva;
+        previous30DaysComparison.acumulado30Dias.descuento_global += descuento_global;
+        previous30DaysComparison.acumulado30Dias.total_venta += total_venta;
+        previous30DaysComparison.acumulado30Dias.unidades_vendidas += unidades_vendidas;
+        previous30DaysComparison.acumulado30Dias.utilidad_estimada += utilidad_estimada;
+
+        const dayItem = {
+          fecha_key: fKey,
+          etiqueta_corta: `${diaStr}/${mesStr}`,
+          etiqueta_larga: `${dObj.getDate()} ${mesCorto} ${dObj.getFullYear()}`,
+          es_ayer: offset === 1,
+          cantidad_ventas,
+          subtotal_neto,
+          total_iva,
+          descuento_global,
+          total_venta,
+          unidades_vendidas,
+          utilidad_estimada,
+        };
+        dias30List.push(dayItem);
+
+        if (offset === 1) {
+          previous30DaysComparison.ayer = {
+            fecha_key: fKey,
+            etiqueta_corta: dayItem.etiqueta_corta,
+            etiqueta_larga: dayItem.etiqueta_larga,
+            cantidad_ventas,
+            total_venta,
+            utilidad_estimada,
+          };
+        }
+      }
+
+      previous30DaysComparison.dias = dias30List;
+      previous30DaysComparison.acumulado30Dias.promedio_diario_venta =
+        previous30DaysComparison.acumulado30Dias.total_venta / 30;
+      previous30DaysComparison.acumulado30Dias.promedio_diario_utilidad =
+        previous30DaysComparison.acumulado30Dias.utilidad_estimada / 30;
+      previous30DaysComparison.acumulado30Dias.promedio_diario_ventas_docs =
+        previous30DaysComparison.acumulado30Dias.cantidad_ventas / 30;
+      previous30DaysComparison.acumulado30Dias.promedio_diario_unidades =
+        previous30DaysComparison.acumulado30Dias.unidades_vendidas / 30;
+      previous30DaysComparison.acumulado30Dias.ticket_promedio =
+        previous30DaysComparison.acumulado30Dias.cantidad_ventas > 0
+          ? previous30DaysComparison.acumulado30Dias.total_venta /
+            previous30DaysComparison.acumulado30Dias.cantidad_ventas
+          : 0;
+
       monthComparison.actual.cantidad_ventas = salesSummary.mesCantidad;
       monthComparison.actual.subtotal_neto = Number(mes?.neto) || 0;
       monthComparison.actual.total_iva = Number(mes?.iva) || 0;
@@ -902,10 +1127,10 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
           ? salesSummary.mesPasadoMonto / salesSummary.mesPasadoCantidad
           : 0;
 
-      // Desglose mensual del año actual (Ingresos del Año) usando rango indexado
+      // Desglose mensual de los últimos 13 meses (desde hace 12 meses hasta el mes actual inclusive) usando rango indexado
       const ventasPorMesRows = queryAll(
         db,
-        `SELECT SUBSTR(fecha_venta, 6, 2) AS mes_num,
+        `SELECT SUBSTR(fecha_venta, 1, 7) AS periodo_ym,
                 COUNT(*) AS cantidad_ventas,
                 COALESCE(SUM(subtotal_neto), 0) AS subtotal_neto,
                 COALESCE(SUM(total_iva), 0) AS total_iva,
@@ -913,26 +1138,26 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
                 COALESCE(SUM(total_venta), 0) AS total_venta
          FROM ventas
          WHERE estado = 'COMPLETADA' AND fecha_venta >= ? AND fecha_venta < ?
-         GROUP BY SUBSTR(fecha_venta, 6, 2)
-         ORDER BY mes_num ASC`,
-        [anioInicioIso, anioFinExclusivoIso]
+         GROUP BY SUBSTR(fecha_venta, 1, 7)
+         ORDER BY periodo_ym ASC`,
+        [start13MonthsInicioIso, mesSiguienteInicioIso]
       );
 
       const detallePorMesMap = new Map();
       if (existingTables.has('detalle_ventas')) {
         const detallePorMesRows = queryAll(
           db,
-          `SELECT SUBSTR(v.fecha_venta, 6, 2) AS mes_num,
+          `SELECT SUBSTR(v.fecha_venta, 1, 7) AS periodo_ym,
                   COALESCE(SUM(dv.cantidad), 0) AS unidades_vendidas,
                   COALESCE(SUM(dv.subtotal - (dv.costo_unitario_historico * dv.cantidad)), 0) AS utilidad_estimada
            FROM ventas v
            INNER JOIN detalle_ventas dv ON dv.id_venta = v.id_venta
            WHERE v.estado = 'COMPLETADA' AND v.fecha_venta >= ? AND v.fecha_venta < ?
-           GROUP BY SUBSTR(v.fecha_venta, 6, 2)`,
-          [anioInicioIso, anioFinExclusivoIso]
+           GROUP BY SUBSTR(v.fecha_venta, 1, 7)`,
+          [start13MonthsInicioIso, mesSiguienteInicioIso]
         );
         for (const r of detallePorMesRows) {
-          detallePorMesMap.set(String(r.mes_num), {
+          detallePorMesMap.set(String(r.periodo_ym), {
             unidades_vendidas: Number(r.unidades_vendidas) || 0,
             utilidad_estimada: Number(r.utilidad_estimada) || 0,
           });
@@ -941,13 +1166,21 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
 
       const ventasPorMesMap = new Map();
       for (const r of ventasPorMesRows) {
-        ventasPorMesMap.set(String(r.mes_num), r);
+        ventasPorMesMap.set(String(r.periodo_ym), r);
       }
 
-      annualIncomeByMonth = MESES_NOMBRES_ES.map((nombreMes, idx) => {
-        const mNum = String(idx + 1).padStart(2, '0');
-        const vRow = ventasPorMesMap.get(mNum);
-        const dRow = detallePorMesMap.get(mNum);
+      const months13List = [];
+      for (let mOffset = 12; mOffset >= 0; mOffset--) {
+        const mDate = new Date(now.getFullYear(), mesActualIdx - mOffset, 1);
+        const mAnio = String(mDate.getFullYear());
+        const mIdx = mDate.getMonth();
+        const mNum = String(mIdx + 1).padStart(2, '0');
+        const ymKey = `${mAnio}-${mNum}`;
+        const nombreMes = MESES_NOMBRES_ES[mIdx];
+        const shortYear = mAnio.slice(-2);
+
+        const vRow = ventasPorMesMap.get(ymKey);
+        const dRow = detallePorMesMap.get(ymKey);
 
         const cantidad_ventas = Number(vRow?.cantidad_ventas) || 0;
         const subtotal_neto = Number(vRow?.subtotal_neto) || 0;
@@ -965,10 +1198,21 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
         annualTotals.unidades_vendidas += unidades_vendidas;
         annualTotals.utilidad_estimada += utilidad_estimada;
 
-        return {
+        if (mAnio === anioActual) {
+          salesSummary.anioMonto += total_venta;
+          salesSummary.anioCantidad += cantidad_ventas;
+          salesSummary.anioUtilidad += utilidad_estimada;
+        }
+
+        months13List.push({
+          periodo_ym: ymKey,
+          anio: mAnio,
           mes_num: mNum,
           mes_nombre: nombreMes,
-          es_mes_actual: mNum === mesActualNum,
+          mes_etiqueta_larga: `${nombreMes} ${mAnio}`,
+          mes_etiqueta_corta: `${nombreMes.slice(0, 3)}'${shortYear}`,
+          es_mes_actual: mOffset === 0,
+          es_mismo_mes_anio_anterior: mOffset === 12,
           cantidad_ventas,
           subtotal_neto,
           total_iva,
@@ -976,12 +1220,10 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
           total_venta,
           unidades_vendidas,
           utilidad_estimada,
-        };
-      });
+        });
+      }
 
-      salesSummary.anioMonto = annualTotals.total_venta;
-      salesSummary.anioCantidad = annualTotals.cantidad_ventas;
-      salesSummary.anioUtilidad = annualTotals.utilidad_estimada;
+      annualIncomeByMonth = months13List;
 
       if (existingTables.has('clientes')) {
         recentSales = queryAll(
@@ -1134,6 +1376,7 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
       annualIncomeByMonth,
       annualTotals,
       monthComparison,
+      previous30DaysComparison,
       lowStockProducts,
       topSellingProducts,
       recentSales,
@@ -1612,12 +1855,12 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
       id_categoria = null,
       nueva_categoria = null,
       unidad_medida = 'UN',
-      costo_promedio = 0,
-      precio_neto = 0,
+      costo_promedio,
+      precio_neto,
       exento_iva = 0,
-      precio_venta_final = 0,
-      stock_minimo = 0,
-      stock_inicial = 0,
+      precio_venta_final,
+      stock_minimo,
+      stock_inicial,
       id_usuario = null,
       tipo_movimiento_inicial = 'AJUSTE_POSITIVO',
       referencia_origen = 'STOCK INICIAL',
@@ -1635,27 +1878,61 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
       throw new Error(`Unidad de medida inválida. Valores permitidos: ${unidadesPermitidas.join(', ')}`);
     }
 
+    if (
+      costo_promedio === undefined ||
+      costo_promedio === null ||
+      String(costo_promedio).trim() === '' ||
+      precio_neto === undefined ||
+      precio_neto === null ||
+      String(precio_neto).trim() === '' ||
+      precio_venta_final === undefined ||
+      precio_venta_final === null ||
+      String(precio_venta_final).trim() === ''
+    ) {
+      throw new Error(
+        'Los precios y costos (Costo Promedio, Precio Neto y Precio Venta Final) deben ingresarse manualmente.'
+      );
+    }
+
+    if (
+      stock_minimo === undefined ||
+      stock_minimo === null ||
+      String(stock_minimo).trim() === '' ||
+      stock_inicial === undefined ||
+      stock_inicial === null ||
+      String(stock_inicial).trim() === ''
+    ) {
+      throw new Error('El stock mínimo y el stock inicial deben ingresarse manualmente.');
+    }
+
     const costoPromNum = Number(costo_promedio);
     const precioNetoNum = Number(precio_neto);
     const precioFinalNum = Number(precio_venta_final);
-    const stockMinNum = Number(stock_minimo ?? 0);
-    const stockInicialNum = Number(stock_inicial ?? 0);
+    const stockMinNum = Number(stock_minimo);
+    const stockInicialNum = Number(stock_inicial);
     const exentoInt = Number(exento_iva) === 1 ? 1 : 0;
 
-    if (Number.isNaN(costoPromNum) || costoPromNum < 0) {
-      throw new Error('El costo promedio debe ser un número mayor o igual a 0.');
+    if (Number.isNaN(costoPromNum) || costoPromNum < 0 || !Number.isInteger(costoPromNum)) {
+      throw new Error('El costo promedio debe ser un número entero (sin decimales ni punto flotante) mayor o igual a 0.');
     }
-    if (Number.isNaN(precioNetoNum) || precioNetoNum < 0) {
-      throw new Error('El precio neto debe ser un número mayor o igual a 0.');
+    if (Number.isNaN(precioNetoNum) || precioNetoNum < 0 || !Number.isInteger(precioNetoNum)) {
+      throw new Error('El precio neto debe ser un número entero (sin decimales ni punto flotante) mayor o igual a 0.');
     }
-    if (Number.isNaN(precioFinalNum) || precioFinalNum < 0) {
-      throw new Error('El precio de venta final debe ser un número mayor o igual a 0.');
+    if (Number.isNaN(precioFinalNum) || precioFinalNum < 0 || !Number.isInteger(precioFinalNum)) {
+      throw new Error('El precio de venta final debe ser un número entero (sin decimales ni punto flotante) mayor o igual a 0.');
     }
     if (Number.isNaN(stockMinNum) || stockMinNum < 0) {
       throw new Error('El stock mínimo debe ser un número mayor o igual a 0.');
     }
     if (Number.isNaN(stockInicialNum) || stockInicialNum < 0) {
       throw new Error('El stock inicial no puede ser negativo.');
+    }
+
+    const esUnidadEntera = unidadValida === 'UN' || unidadValida === 'CAJA';
+    if (esUnidadEntera && (!Number.isInteger(stockMinNum) || !Number.isInteger(stockInicialNum))) {
+      throw new Error(
+        `Para artículos catalogados por ${unidadValida} (Unidad o Caja), las cantidades de stock no pueden tener decimales ni punto flotante.`
+      );
     }
 
     const cleanSku = String(sku ?? '').trim() || null;
@@ -1802,9 +2079,32 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
       );
     }
 
+    if (cantidad === undefined || cantidad === null || String(cantidad).trim() === '') {
+      throw new Error('Debes ingresar manualmente la cantidad a sumar.');
+    }
+
     const cantNum = Number(cantidad);
     if (Number.isNaN(cantNum) || cantNum <= 0) {
       throw new Error('La cantidad a ingresar debe ser mayor a 0.');
+    }
+
+    if (
+      costo_unitario === undefined ||
+      costo_unitario === null ||
+      String(costo_unitario).trim() === ''
+    ) {
+      throw new Error('Debes ingresar manualmente el costo unitario del movimiento.');
+    }
+
+    const costoUnitarioFinal = Number(costo_unitario);
+    if (
+      Number.isNaN(costoUnitarioFinal) ||
+      costoUnitarioFinal < 0 ||
+      !Number.isInteger(costoUnitarioFinal)
+    ) {
+      throw new Error(
+        'El costo unitario debe ser un número entero (sin decimales ni punto flotante) mayor o igual a 0.'
+      );
     }
 
     db.run('BEGIN TRANSACTION;');
@@ -1818,21 +2118,21 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
         throw new Error('El producto seleccionado no existe.');
       }
 
+      const unidadProd = String(producto.unidad_medida || 'UN').toUpperCase();
+      if ((unidadProd === 'UN' || unidadProd === 'CAJA') && !Number.isInteger(cantNum)) {
+        throw new Error(
+          `El producto "${producto.nombre}" se vende por ${unidadProd}. La cantidad no puede tener decimales ni punto flotante.`
+        );
+      }
+
       const stockAnterior = Number(producto.stock_actual) || 0;
       const stockResultante = Number((stockAnterior + cantNum).toFixed(4));
       const costoActual = Number(producto.costo_promedio) || 0;
-      const costoUnitarioFinal =
-        costo_unitario !== null &&
-        costo_unitario !== '' &&
-        !Number.isNaN(Number(costo_unitario)) &&
-        Number(costo_unitario) >= 0
-          ? Number(costo_unitario)
-          : costoActual;
 
       if (tipoMov === 'ENTRADA_COMPRA' && costoUnitarioFinal >= 0 && stockResultante > 0) {
         const stockBase = Math.max(0, stockAnterior);
-        const nuevoCostoPromedio = Number(
-          (((stockBase * costoActual) + (cantNum * costoUnitarioFinal)) / (stockBase + cantNum)).toFixed(2)
+        const nuevoCostoPromedio = Math.round(
+          ((stockBase * costoActual) + (cantNum * costoUnitarioFinal)) / (stockBase + cantNum)
         );
         runStmt(db, 'UPDATE productos SET costo_promedio = ? WHERE id_producto = ?', [
           nuevoCostoPromedio,
@@ -1918,6 +2218,10 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
       );
     }
 
+    if (cantidad === undefined || cantidad === null || String(cantidad).trim() === '') {
+      throw new Error('Debes ingresar manualmente la cantidad de merma o pérdida.');
+    }
+
     const cantNum = Number(cantidad);
     if (Number.isNaN(cantNum) || cantNum <= 0) {
       throw new Error('La cantidad de merma/pérdida debe ser mayor a 0.');
@@ -1939,6 +2243,13 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
         throw new Error('El producto seleccionado no existe.');
       }
 
+      const unidadProd = String(producto.unidad_medida || 'UN').toUpperCase();
+      if ((unidadProd === 'UN' || unidadProd === 'CAJA') && !Number.isInteger(cantNum)) {
+        throw new Error(
+          `El producto "${producto.nombre}" está catalogado por ${unidadProd} (Unidad o Caja). Al registrar mermas o pérdidas no se permite usar decimales ni punto flotante.`
+        );
+      }
+
       const stockAnterior = Number(producto.stock_actual) || 0;
       if (cantNum > stockAnterior) {
         throw new Error(
@@ -1947,7 +2258,7 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
       }
 
       const stockResultante = Number((stockAnterior - cantNum).toFixed(4));
-      const costoActual = Number(producto.costo_promedio) || 0;
+      const costoActual = Math.round(Number(producto.costo_promedio) || 0);
       const usuarioValido = resolveValidUserId(db, id_usuario);
 
       const insertMov = runStmt(
@@ -2671,6 +2982,478 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
     return payload;
   }
 
+  // ==========================================
+  // SECCIÓN FINANZAS (INGRESOS, EGRESOS, IVA Y PÉRDIDAS POR MERMA / BAJA DE PRODUCTO)
+  // Soporta ventanas de: 1 (Mes actual), 3, 6 y 12 meses.
+  // ==========================================
+  async function getFinanceSectionData(params = {}) {
+    await ensureLoadedInTab();
+    const db = requireActiveDb();
+
+    const existingTables = new Set(listUserTables(db));
+
+    const allowedPeriods = [1, 3, 6, 12];
+    const requestedMonths = Number(params.meses ?? params.periodMonths ?? 1);
+    const periodMonths = allowedPeriods.includes(requestedMonths) ? requestedMonths : 1;
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonthIdx = now.getMonth();
+
+    // Mes inicial del rango solicitado (1 = solo mes actual; 3 = últimos 3 meses; 6 = últimos 6; 12 = últimos 12)
+    const startMonthDate = new Date(currentYear, currentMonthIdx - (periodMonths - 1), 1);
+    const startYear = String(startMonthDate.getFullYear());
+    const startMonthNum = String(startMonthDate.getMonth() + 1).padStart(2, '0');
+    const startMonthIso = `${startYear}-${startMonthNum}-01`;
+
+    // Límite superior exclusivo (inicio del mes siguiente al actual)
+    const nextMonthDate = new Date(currentYear, currentMonthIdx + 1, 1);
+    const nextYear = String(nextMonthDate.getFullYear());
+    const nextMonthNum = String(nextMonthDate.getMonth() + 1).padStart(2, '0');
+    const endMonthExclusiveIso = `${nextYear}-${nextMonthNum}-01`;
+
+    const currentMonthName = MESES_NOMBRES_ES[currentMonthIdx];
+    const startMonthName = MESES_NOMBRES_ES[startMonthDate.getMonth()];
+    const periodLabel =
+      periodMonths === 1
+        ? `Mes Actual (${currentMonthName} ${currentYear})`
+        : `Últimos ${periodMonths} Meses (${startMonthName.slice(0, 3)} ${startYear} – ${currentMonthName.slice(0, 3)} ${currentYear})`;
+
+    // Mapas por mes YYYY-MM
+    const ventasByMonthMap = new Map();
+    const costoVentasByMonthMap = new Map();
+    const comprasByMonthMap = new Map();
+    const entradasSinDocByMonthMap = new Map();
+    const mermasByMonthMap = new Map();
+
+    // 1. Ingresos y Débito Fiscal IVA desde tabla `ventas` (estado = 'COMPLETADA')
+    let ventasPorTipoDoc = [];
+    let ventasPorMetodoPago = [];
+    if (existingTables.has('ventas')) {
+      const ventasRows = queryAll(
+        db,
+        `SELECT SUBSTR(fecha_venta, 1, 7) AS periodo_ym,
+                COUNT(*) AS cantidad_ventas,
+                COALESCE(SUM(subtotal_neto), 0) AS ventas_neto,
+                COALESCE(SUM(total_iva), 0) AS iva_debito_ventas,
+                COALESCE(SUM(descuento_global), 0) AS descuento_global,
+                COALESCE(SUM(total_venta), 0) AS ingresos_brutos
+         FROM ventas
+         WHERE estado = 'COMPLETADA'
+           AND fecha_venta >= ?
+           AND fecha_venta < ?
+         GROUP BY SUBSTR(fecha_venta, 1, 7)
+         ORDER BY periodo_ym ASC`,
+        [startMonthIso, endMonthExclusiveIso]
+      );
+      for (const r of ventasRows) {
+        ventasByMonthMap.set(String(r.periodo_ym), r);
+      }
+
+      ventasPorTipoDoc = queryAll(
+        db,
+        `SELECT tipo_documento,
+                COUNT(*) AS cantidad_docs,
+                COALESCE(SUM(subtotal_neto), 0) AS subtotal_neto,
+                COALESCE(SUM(total_iva), 0) AS total_iva,
+                COALESCE(SUM(descuento_global), 0) AS descuento_global,
+                COALESCE(SUM(total_venta), 0) AS total_venta
+         FROM ventas
+         WHERE estado = 'COMPLETADA'
+           AND fecha_venta >= ?
+           AND fecha_venta < ?
+         GROUP BY tipo_documento
+         ORDER BY total_venta DESC`,
+        [startMonthIso, endMonthExclusiveIso]
+      );
+
+      if (existingTables.has('pagos_venta')) {
+        ventasPorMetodoPago = queryAll(
+          db,
+          `SELECT pv.metodo_pago,
+                  COUNT(DISTINCT pv.id_venta) AS cantidad_ventas,
+                  COALESCE(SUM(pv.monto), 0) AS monto_recaudado
+           FROM pagos_venta pv
+           INNER JOIN ventas v ON v.id_venta = pv.id_venta
+           WHERE v.estado = 'COMPLETADA'
+             AND v.fecha_venta >= ?
+             AND v.fecha_venta < ?
+           GROUP BY pv.metodo_pago
+           ORDER BY monto_recaudado DESC`,
+          [startMonthIso, endMonthExclusiveIso]
+        );
+      }
+    }
+
+    // 2. Costo histórico de ventas (COGS) desde `detalle_ventas`
+    if (existingTables.has('detalle_ventas') && existingTables.has('ventas')) {
+      const cogsRows = queryAll(
+        db,
+        `SELECT SUBSTR(v.fecha_venta, 1, 7) AS periodo_ym,
+                COALESCE(SUM(dv.cantidad), 0) AS unidades_vendidas,
+                COALESCE(SUM(dv.costo_unitario_historico * dv.cantidad), 0) AS costo_ventas_historico
+         FROM ventas v
+         INNER JOIN detalle_ventas dv ON dv.id_venta = v.id_venta
+         WHERE v.estado = 'COMPLETADA'
+           AND v.fecha_venta >= ?
+           AND v.fecha_venta < ?
+         GROUP BY SUBSTR(v.fecha_venta, 1, 7)`,
+        [startMonthIso, endMonthExclusiveIso]
+      );
+      for (const r of cogsRows) {
+        costoVentasByMonthMap.set(String(r.periodo_ym), r);
+      }
+    }
+
+    // 3. Egresos por Compras y Crédito Fiscal IVA desde tabla `compras` (estado = 'RECIBIDA')
+    let comprasPorTipoDoc = [];
+    if (existingTables.has('compras')) {
+      const comprasRows = queryAll(
+        db,
+        `SELECT SUBSTR(fecha_emision, 1, 7) AS periodo_ym,
+                COUNT(*) AS cantidad_compras,
+                COALESCE(SUM(total_neto), 0) AS compras_neto,
+                COALESCE(SUM(total_iva), 0) AS iva_credito_compras,
+                COALESCE(SUM(total_compra), 0) AS egresos_compras_bruto
+         FROM compras
+         WHERE estado = 'RECIBIDA'
+           AND fecha_emision >= ?
+           AND fecha_emision < ?
+         GROUP BY SUBSTR(fecha_emision, 1, 7)
+         ORDER BY periodo_ym ASC`,
+        [startMonthIso, endMonthExclusiveIso]
+      );
+      for (const r of comprasRows) {
+        comprasByMonthMap.set(String(r.periodo_ym), r);
+      }
+
+      comprasPorTipoDoc = queryAll(
+        db,
+        `SELECT tipo_documento,
+                COUNT(*) AS cantidad_docs,
+                COALESCE(SUM(total_neto), 0) AS total_neto,
+                COALESCE(SUM(total_iva), 0) AS total_iva,
+                COALESCE(SUM(total_compra), 0) AS total_compra
+         FROM compras
+         WHERE estado = 'RECIBIDA'
+           AND fecha_emision >= ?
+           AND fecha_emision < ?
+         GROUP BY tipo_documento
+         ORDER BY total_compra DESC`,
+        [startMonthIso, endMonthExclusiveIso]
+      );
+    }
+
+    // 4. Entradas de bodega directas por Kardex (`ENTRADA_COMPRA`) y Pérdidas por Merma / Baja de Producto (`MERMA`, `AJUSTE_NEGATIVO`)
+    let resumenPerdidasPorTipo = [];
+    let detalleMovimientosPerdida = [];
+    let topProductosPerdida = [];
+
+    if (existingTables.has('movimientos_inventario') && existingTables.has('productos')) {
+      // Entradas de compra registradas directamente en Kardex que no provienen de una orden en tabla `compras`
+      const entradasKardexRows = queryAll(
+        db,
+        `SELECT SUBSTR(mi.fecha, 1, 7) AS periodo_ym,
+                COUNT(*) AS cant_ingresos_kardex,
+                COALESCE(SUM(mi.cantidad * COALESCE(mi.costo_unitario, p.costo_promedio, 0)), 0) AS costo_entradas_kardex
+         FROM movimientos_inventario mi
+         INNER JOIN productos p ON p.id_producto = mi.id_producto
+         WHERE mi.tipo_movimiento = 'ENTRADA_COMPRA'
+           AND mi.fecha >= ?
+           AND mi.fecha < ?
+           AND (mi.referencia_origen IS NULL OR UPPER(mi.referencia_origen) NOT LIKE 'COMPRA #%')
+         GROUP BY SUBSTR(mi.fecha, 1, 7)`,
+        [startMonthIso, endMonthExclusiveIso]
+      );
+      for (const r of entradasKardexRows) {
+        entradasSinDocByMonthMap.set(String(r.periodo_ym), r);
+      }
+
+      // Pérdidas mensuales por MERMA y AJUSTE_NEGATIVO
+      const perdidasMensualesRows = queryAll(
+        db,
+        `SELECT SUBSTR(mi.fecha, 1, 7) AS periodo_ym,
+                COUNT(*) AS eventos_perdida,
+                COALESCE(SUM(mi.cantidad), 0) AS unidades_perdidas,
+                COALESCE(SUM(CASE WHEN mi.tipo_movimiento = 'MERMA' THEN mi.cantidad * COALESCE(mi.costo_unitario, p.costo_promedio, 0) ELSE 0 END), 0) AS costo_merma,
+                COALESCE(SUM(CASE WHEN mi.tipo_movimiento = 'AJUSTE_NEGATIVO' THEN mi.cantidad * COALESCE(mi.costo_unitario, p.costo_promedio, 0) ELSE 0 END), 0) AS costo_ajuste_negativo,
+                COALESCE(SUM(mi.cantidad * COALESCE(mi.costo_unitario, p.costo_promedio, 0)), 0) AS costo_perdida_total,
+                COALESCE(SUM(CASE WHEN p.exento_iva = 0 THEN (mi.cantidad * COALESCE(mi.costo_unitario, p.costo_promedio, 0)) * 0.19 ELSE 0 END), 0) AS iva_estimado_perdida
+         FROM movimientos_inventario mi
+         INNER JOIN productos p ON p.id_producto = mi.id_producto
+         WHERE mi.tipo_movimiento IN ('MERMA', 'AJUSTE_NEGATIVO')
+           AND mi.fecha >= ?
+           AND mi.fecha < ?
+         GROUP BY SUBSTR(mi.fecha, 1, 7)`,
+        [startMonthIso, endMonthExclusiveIso]
+      );
+      for (const r of perdidasMensualesRows) {
+        mermasByMonthMap.set(String(r.periodo_ym), r);
+      }
+
+      resumenPerdidasPorTipo = queryAll(
+        db,
+        `SELECT mi.tipo_movimiento,
+                COUNT(*) AS cantidad_eventos,
+                COALESCE(SUM(mi.cantidad), 0) AS total_unidades,
+                COALESCE(SUM(mi.cantidad * COALESCE(mi.costo_unitario, p.costo_promedio, 0)), 0) AS costo_neto_perdido,
+                COALESCE(SUM(CASE WHEN p.exento_iva = 0 THEN (mi.cantidad * COALESCE(mi.costo_unitario, p.costo_promedio, 0)) * 0.19 ELSE 0 END), 0) AS iva_asociado_perdido,
+                COALESCE(SUM(mi.cantidad * COALESCE(p.precio_venta_final, 0)), 0) AS ingreso_potencial_no_percibido
+         FROM movimientos_inventario mi
+         INNER JOIN productos p ON p.id_producto = mi.id_producto
+         WHERE mi.tipo_movimiento IN ('MERMA', 'AJUSTE_NEGATIVO')
+           AND mi.fecha >= ?
+           AND mi.fecha < ?
+         GROUP BY mi.tipo_movimiento
+         ORDER BY costo_neto_perdido DESC`,
+        [startMonthIso, endMonthExclusiveIso]
+      );
+
+      topProductosPerdida = queryAll(
+        db,
+        `SELECT p.id_producto,
+                p.nombre AS producto_nombre,
+                p.sku AS producto_sku,
+                p.unidad_medida,
+                COUNT(*) AS eventos,
+                COALESCE(SUM(mi.cantidad), 0) AS unidades_perdidas,
+                COALESCE(SUM(mi.cantidad * COALESCE(mi.costo_unitario, p.costo_promedio, 0)), 0) AS costo_total_perdido,
+                COALESCE(SUM(mi.cantidad * COALESCE(p.precio_venta_final, 0)), 0) AS valor_venta_perdido
+         FROM movimientos_inventario mi
+         INNER JOIN productos p ON p.id_producto = mi.id_producto
+         WHERE mi.tipo_movimiento IN ('MERMA', 'AJUSTE_NEGATIVO')
+           AND mi.fecha >= ?
+           AND mi.fecha < ?
+         GROUP BY p.id_producto
+         ORDER BY costo_total_perdido DESC
+         LIMIT 10`,
+        [startMonthIso, endMonthExclusiveIso]
+      );
+
+      const hasUsuarios = existingTables.has('usuarios');
+      detalleMovimientosPerdida = queryAll(
+        db,
+        hasUsuarios
+          ? `SELECT mi.id_movimiento,
+                    mi.id_producto,
+                    p.nombre AS producto_nombre,
+                    p.sku AS producto_sku,
+                    p.unidad_medida,
+                    p.exento_iva,
+                    mi.tipo_movimiento,
+                    mi.cantidad,
+                    COALESCE(mi.costo_unitario, p.costo_promedio, 0) AS costo_unitario_aplicado,
+                    (mi.cantidad * COALESCE(mi.costo_unitario, p.costo_promedio, 0)) AS costo_total_perdida,
+                    (mi.cantidad * COALESCE(p.precio_venta_final, 0)) AS valor_venta_perdido,
+                    mi.referencia_origen,
+                    mi.motivo,
+                    mi.fecha,
+                    COALESCE(u.nombre, 'Usuario #' || mi.id_usuario) AS usuario_nombre
+             FROM movimientos_inventario mi
+             INNER JOIN productos p ON p.id_producto = mi.id_producto
+             LEFT JOIN usuarios u ON u.id_usuario = mi.id_usuario
+             WHERE mi.tipo_movimiento IN ('MERMA', 'AJUSTE_NEGATIVO')
+               AND mi.fecha >= ?
+               AND mi.fecha < ?
+             ORDER BY mi.fecha DESC, mi.id_movimiento DESC
+             LIMIT 40`
+          : `SELECT mi.id_movimiento,
+                    mi.id_producto,
+                    p.nombre AS producto_nombre,
+                    p.sku AS producto_sku,
+                    p.unidad_medida,
+                    p.exento_iva,
+                    mi.tipo_movimiento,
+                    mi.cantidad,
+                    COALESCE(mi.costo_unitario, p.costo_promedio, 0) AS costo_unitario_aplicado,
+                    (mi.cantidad * COALESCE(mi.costo_unitario, p.costo_promedio, 0)) AS costo_total_perdida,
+                    (mi.cantidad * COALESCE(p.precio_venta_final, 0)) AS valor_venta_perdido,
+                    mi.referencia_origen,
+                    mi.motivo,
+                    mi.fecha,
+                    ('Usuario #' || mi.id_usuario) AS usuario_nombre
+             FROM movimientos_inventario mi
+             INNER JOIN productos p ON p.id_producto = mi.id_producto
+             WHERE mi.tipo_movimiento IN ('MERMA', 'AJUSTE_NEGATIVO')
+               AND mi.fecha >= ?
+               AND mi.fecha < ?
+             ORDER BY mi.fecha DESC, mi.id_movimiento DESC
+             LIMIT 40`,
+        [startMonthIso, endMonthExclusiveIso]
+      );
+    }
+
+    // Construir serie cronológica mes a mes para el rango seleccionado (1, 3, 6 o 12 meses)
+    const monthlySeries = [];
+    const totals = {
+      periodMonths,
+      periodLabel,
+      startMonthIso,
+      // Ingresos
+      cantidad_ventas: 0,
+      unidades_vendidas: 0,
+      ventas_neto: 0,
+      iva_debito_ventas: 0,
+      descuento_global: 0,
+      ingresos_brutos: 0,
+      // Egresos y Costos Separados
+      cantidad_compras: 0,
+      compras_neto: 0,
+      iva_credito_compras: 0,
+      egresos_compras_bruto: 0,
+      costo_entradas_kardex_sin_doc: 0,
+      costo_ventas_historico: 0,
+      // Pérdidas por Merma / Baja de Producto
+      eventos_perdida: 0,
+      unidades_perdidas: 0,
+      costo_merma: 0,
+      costo_ajuste_negativo: 0,
+      costo_perdida_total: 0,
+      iva_estimado_perdida: 0,
+      // Consolidados de Egresos y Resultado
+      egresos_operativos_totales: 0,
+      balance_flujo_caja: 0,
+      utilidad_neta_despues_mermas: 0,
+      // Resumen IVA
+      iva_neto_a_pagar: 0,
+      remanente_credito_iva: 0,
+    };
+
+    for (let mOffset = periodMonths - 1; mOffset >= 0; mOffset--) {
+      const mDate = new Date(currentYear, currentMonthIdx - mOffset, 1);
+      const mYear = String(mDate.getFullYear());
+      const mIdx = mDate.getMonth();
+      const mNum = String(mIdx + 1).padStart(2, '0');
+      const ymKey = `${mYear}-${mNum}`;
+      const mName = MESES_NOMBRES_ES[mIdx];
+      const shortYear = mYear.slice(-2);
+
+      const vRow = ventasByMonthMap.get(ymKey);
+      const cogsRow = costoVentasByMonthMap.get(ymKey);
+      const compRow = comprasByMonthMap.get(ymKey);
+      const kardexInRow = entradasSinDocByMonthMap.get(ymKey);
+      const mermaRow = mermasByMonthMap.get(ymKey);
+
+      const cantidad_ventas = Number(vRow?.cantidad_ventas) || 0;
+      const ventas_neto = Number(vRow?.ventas_neto) || 0;
+      const iva_debito_ventas = Number(vRow?.iva_debito_ventas) || 0;
+      const descuento_global = Number(vRow?.descuento_global) || 0;
+      const ingresos_brutos = Number(vRow?.ingresos_brutos) || 0;
+
+      const unidades_vendidas = Number(cogsRow?.unidades_vendidas) || 0;
+      const costo_ventas_historico = Number(cogsRow?.costo_ventas_historico) || 0;
+
+      const cantidad_compras = Number(compRow?.cantidad_compras) || 0;
+      const compras_neto = Number(compRow?.compras_neto) || 0;
+      const iva_credito_compras = Number(compRow?.iva_credito_compras) || 0;
+      const egresos_compras_bruto = Number(compRow?.egresos_compras_bruto) || 0;
+
+      const costo_entradas_kardex_sin_doc = Number(kardexInRow?.costo_entradas_kardex) || 0;
+
+      const eventos_perdida = Number(mermaRow?.eventos_perdida) || 0;
+      const unidades_perdidas = Number(mermaRow?.unidades_perdidas) || 0;
+      const costo_merma = Number(mermaRow?.costo_merma) || 0;
+      const costo_ajuste_negativo = Number(mermaRow?.costo_ajuste_negativo) || 0;
+      const costo_perdida_total = Number(mermaRow?.costo_perdida_total) || 0;
+      const iva_estimado_perdida = Number(mermaRow?.iva_estimado_perdida) || 0;
+
+      // Egresos totales del mes (separados de ingresos):
+      // Si existen compras documentadas o entradas de bodega, suma compras + entradas sin doc + pérdidas por merma;
+      // además calcula el egreso económico (Costo de Ventas + Pérdidas por Merma + Compras documentadas/bodega).
+      const adquisicion_inventario_mes = egresos_compras_bruto + costo_entradas_kardex_sin_doc;
+      const egresos_operativos_mes =
+        adquisicion_inventario_mes > 0
+          ? adquisicion_inventario_mes + costo_perdida_total
+          : costo_ventas_historico + costo_perdida_total;
+
+      const utilidad_bruta_ventas = ventas_neto - costo_ventas_historico;
+      const utilidad_neta_despues_mermas = utilidad_bruta_ventas - costo_perdida_total;
+      const balance_mes = ingresos_brutos - egresos_operativos_mes;
+      const diferencia_iva_mes = iva_debito_ventas - iva_credito_compras;
+
+      totals.cantidad_ventas += cantidad_ventas;
+      totals.unidades_vendidas += unidades_vendidas;
+      totals.ventas_neto += ventas_neto;
+      totals.iva_debito_ventas += iva_debito_ventas;
+      totals.descuento_global += descuento_global;
+      totals.ingresos_brutos += ingresos_brutos;
+
+      totals.cantidad_compras += cantidad_compras;
+      totals.compras_neto += compras_neto;
+      totals.iva_credito_compras += iva_credito_compras;
+      totals.egresos_compras_bruto += egresos_compras_bruto;
+      totals.costo_entradas_kardex_sin_doc += costo_entradas_kardex_sin_doc;
+      totals.costo_ventas_historico += costo_ventas_historico;
+
+      totals.eventos_perdida += eventos_perdida;
+      totals.unidades_perdidas += unidades_perdidas;
+      totals.costo_merma += costo_merma;
+      totals.costo_ajuste_negativo += costo_ajuste_negativo;
+      totals.costo_perdida_total += costo_perdida_total;
+      totals.iva_estimado_perdida += iva_estimado_perdida;
+
+      totals.egresos_operativos_totales += egresos_operativos_mes;
+      totals.utilidad_neta_despues_mermas += utilidad_neta_despues_mermas;
+
+      monthlySeries.push({
+        periodo_ym: ymKey,
+        anio: mYear,
+        mes_num: mNum,
+        mes_nombre: mName,
+        etiqueta_larga: `${mName} ${mYear}`,
+        etiqueta_corta: `${mName.slice(0, 3)}'${shortYear}`,
+        es_mes_actual: mOffset === 0,
+        // Ingresos
+        cantidad_ventas,
+        unidades_vendidas,
+        ventas_neto,
+        iva_debito_ventas,
+        descuento_global,
+        ingresos_brutos,
+        // Egresos y Costos
+        cantidad_compras,
+        compras_neto,
+        iva_credito_compras,
+        egresos_compras_bruto,
+        costo_entradas_kardex_sin_doc,
+        adquisicion_inventario_mes,
+        costo_ventas_historico,
+        // Mermas y Pérdidas
+        eventos_perdida,
+        unidades_perdidas,
+        costo_merma,
+        costo_ajuste_negativo,
+        costo_perdida_total,
+        iva_estimado_perdida,
+        // Consolidados del mes
+        egresos_operativos_mes,
+        utilidad_bruta_ventas,
+        utilidad_neta_despues_mermas,
+        balance_mes,
+        diferencia_iva_mes,
+      });
+    }
+
+    totals.balance_flujo_caja = totals.ingresos_brutos - totals.egresos_operativos_totales;
+    const diffIvaTotal = totals.iva_debito_ventas - totals.iva_credito_compras;
+    totals.iva_neto_a_pagar = diffIvaTotal > 0 ? diffIvaTotal : 0;
+    totals.remanente_credito_iva = diffIvaTotal < 0 ? Math.abs(diffIvaTotal) : 0;
+
+    return {
+      database: { ...activeFileMeta },
+      periodMonths,
+      periodLabel,
+      totals,
+      monthlySeries,
+      ventasPorTipoDoc,
+      ventasPorMetodoPago,
+      comprasPorTipoDoc,
+      resumenPerdidasPorTipo,
+      topProductosPerdida,
+      detalleMovimientosPerdida,
+    };
+  }
+
   global.LocalSqliteEngine = {
     ensureLoadedInTab,
     clearSession,
@@ -2693,5 +3476,6 @@ CREATE INDEX idx_kardex_prod_tipo_fecha ON movimientos_inventario(id_producto, t
     saveClientRecord,
     deleteClientRecord,
     exportClientPersonalData,
+    getFinanceSectionData,
   };
 })(window);
