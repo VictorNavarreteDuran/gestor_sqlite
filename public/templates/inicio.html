@@ -1,0 +1,202 @@
+<!-- Vista Principal: Inicio -->
+<section id="section-inicio" class="dashboard-section">
+  <div class="page-header">
+    <div>
+      <span class="badge">Resumen Operativo</span>
+      <h1>Panel de Inicio</h1>
+      <p class="subtitle-left">Ingresos del día, mes actual, acumulado anual, evolución de los últimos 13 meses, comparativa de los 30 días anteriores a hoy, avisos de stock clasificados (±7) y Top 5 productos más vendidos.</p>
+    </div>
+    <button type="button" class="btn btn-refresh" id="refreshBtn">
+      Actualizar datos
+    </button>
+  </div>
+
+  <!-- Tarjetas KPI de Resumen de Ventas e Inventario -->
+  <div class="kpi-grid">
+    <article class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-label" id="kpiHoyLabel">Ingresos del Día (Hoy)</span>
+        <span class="kpi-icon blue">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </span>
+      </div>
+      <div class="kpi-value" id="kpiHoyMonto">$0</div>
+      <div class="kpi-meta" id="kpiHoyCantidad">0 ventas completadas hoy</div>
+    </article>
+
+    <article class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-label" id="kpiMesLabel">Ingresos del Mes</span>
+        <span class="kpi-icon emerald">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </span>
+      </div>
+      <div class="kpi-value" id="kpiMesMonto">$0</div>
+      <div class="kpi-meta" id="kpiMesCantidad">0 documentos este mes</div>
+    </article>
+
+    <article class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-label" id="kpiAnioLabel">Ingresos del Año</span>
+        <span class="kpi-icon purple">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        </span>
+      </div>
+      <div class="kpi-value" id="kpiTotalMonto">$0</div>
+      <div class="kpi-meta" id="kpiUtilidad">Utilidad est.: $0 (0 ventas)</div>
+    </article>
+
+    <article class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-label">Avisos de Stock (±7)</span>
+        <span class="kpi-icon amber">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+      </div>
+      <div class="kpi-value" id="kpiStockBajo">0</div>
+      <div class="kpi-meta" id="kpiTotalProductos">0 crítico · 0 precaución · 0 sugerencia</div>
+    </article>
+  </div>
+
+  <!-- Paneles Financieros: Gráfico de Ingresos de los Últimos 13 Meses y Gráfico Comparativo de 30 Días Anteriores -->
+  <div class="dashboard-panels">
+    <!-- Gráfico 1: Ingresos de los Últimos 13 Meses (Curva de Ascenso / Descenso Mensual) -->
+    <section class="panel-card">
+      <div class="panel-header">
+        <div>
+          <h2 id="annualIncomeTitle">Gráfico de Ingresos (Últimos 13 Meses)</h2>
+          <p class="panel-subtitle">Evolución mensual de los últimos 13 meses con curva de ascenso o descenso de ingresos, utilidad e interanual</p>
+        </div>
+        <span class="panel-badge success-badge" id="annualIncomeBadge">$0 (13 meses)</span>
+      </div>
+
+      <div id="annualIncomeChartContainer" class="chart-panel-body">
+        <div class="empty-cell">Cargando gráfico de los últimos 13 meses...</div>
+      </div>
+    </section>
+
+    <!-- Gráfico 2: Comparativa de los 30 Días Anteriores al Día de Hoy -->
+    <section class="panel-card">
+      <div class="panel-header">
+        <div>
+          <h2 id="monthCompTitle">Gráfico Comparativo: 30 Días Anteriores a Hoy</h2>
+          <p class="panel-subtitle" id="monthCompSubtitle">Evolución diaria de los 30 días previos al día de hoy y comparativa con Hoy</p>
+        </div>
+        <span class="panel-badge info" id="monthCompBadge">30 días anteriores vs. Hoy</span>
+      </div>
+
+      <div id="monthCompChartContainer" class="chart-panel-body">
+        <div class="empty-cell">Cargando gráfico de los 30 días anteriores...</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Paneles Principales: Avisos de Stock por Categoría (±7) y Top 5 Productos Más Vendidos -->
+  <div class="dashboard-panels">
+    <!-- Panel 3: Avisos de Stock Clasificados por Categoría -->
+    <section class="panel-card">
+      <div class="panel-header">
+        <div>
+          <h2>Avisos de Stock por Categoría</h2>
+          <p class="panel-subtitle">
+            Clasificación respecto al Stock Mínimo: <strong>Crítico</strong> (7 o más por abajo / agotado), <strong>Precaución</strong> (hasta 7 por abajo) y <strong>Sugerencia</strong> (hasta 7 por arriba)
+          </p>
+        </div>
+        <span class="panel-badge warning" id="lowStockBadge">0 avisos</span>
+      </div>
+
+      <!-- Filtros rápidos por categoría de aviso -->
+      <div class="stock-alert-tabs" id="stockAlertTabs" role="tablist" aria-label="Categorías de aviso de stock">
+        <button type="button" class="stock-tab-btn active" data-alert-filter="ALL" id="tabStockAll">
+          Todos (<span id="countStockAll">0</span>)
+        </button>
+        <button type="button" class="stock-tab-btn danger" data-alert-filter="CRITICO" id="tabStockCritico">
+          Crítico · -7 (<span id="countStockCritico">0</span>)
+        </button>
+        <button type="button" class="stock-tab-btn warning" data-alert-filter="PRECAUCION" id="tabStockPrecaucion">
+          Precaución · Mín (<span id="countStockPrecaucion">0</span>)
+        </button>
+        <button type="button" class="stock-tab-btn info" data-alert-filter="SUGERENCIA" id="tabStockSugerencia">
+          Sugerencia · +7 (<span id="countStockSugerencia">0</span>)
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Producto / SKU</th>
+              <th>Categoría</th>
+              <th class="text-right">Stock Actual</th>
+              <th class="text-right">Mínimo (±7)</th>
+              <th class="text-right">Diferencia</th>
+              <th>Nivel Aviso</th>
+            </tr>
+          </thead>
+          <tbody id="lowStockTableBody">
+            <tr>
+              <td colspan="6" class="empty-cell">Cargando avisos de stock...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Panel 4: Los 5 Productos Más Vendidos de la Tienda -->
+    <section class="panel-card">
+      <div class="panel-header">
+        <div>
+          <h2>Top 5 Productos Más Vendidos</h2>
+          <p class="panel-subtitle">Los 5 productos con mayor volumen de unidades vendidas e ingresos en la tienda</p>
+        </div>
+        <span class="panel-badge info" id="topProductsBadge">Top 5</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Producto</th>
+              <th class="text-right">Cant. Vendida</th>
+              <th class="text-right">Ingresos</th>
+            </tr>
+          </thead>
+          <tbody id="topProductsTableBody">
+            <tr>
+              <td colspan="4" class="empty-cell">Cargando Top 5...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Panel Inferior: Últimas Ventas Registradas -->
+  <section class="panel-card">
+    <div class="panel-header">
+      <div>
+        <h2>Últimas Ventas Registradas</h2>
+        <p class="panel-subtitle">Movimientos recientes de facturación, boletas y tickets internos</p>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID / Documento</th>
+            <th>Cliente</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+            <th class="text-right">Total Venta</th>
+          </tr>
+        </thead>
+        <tbody id="recentSalesTableBody">
+          <tr>
+            <td colspan="5" class="empty-cell">Cargando historial reciente...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>

@@ -1,0 +1,114 @@
+<!-- Vista de Clientes y Proveedores (Derechos ARSOP+ Ley 21.719 Chile) -->
+<section id="section-clientes" class="dashboard-section hidden">
+  <div class="page-header">
+    <div>
+      <span class="badge">Cumplimiento Ley N° 21.719 (Chile) · Derechos ARSOP+</span>
+      <h1>Clientes y Protección de Datos Personales</h1>
+      <p class="subtitle-left">
+        Administra los datos de tus clientes directamente en tu archivo <code>.db</code> local. Permite ejercer los derechos de <strong>Acceso</strong>, <strong>Rectificación</strong>, <strong>Portabilidad (JSON)</strong> y <strong>Supresión</strong> sin enviar datos a servidores externos.
+      </p>
+    </div>
+    <button type="button" class="btn btn-refresh" id="refreshClientsBtn">
+      Actualizar directorio
+    </button>
+  </div>
+
+  <div class="dashboard-panels">
+    <!-- Formulario Crear / Rectificar Cliente -->
+    <section class="panel-card">
+      <div class="panel-header">
+        <div>
+          <h2 id="clientFormTitle">Registrar / Rectificar Cliente</h2>
+          <p class="panel-subtitle">Crea un cliente nuevo o actualiza (rectifica) sus datos personales en tu archivo local</p>
+        </div>
+        <span class="panel-badge info">Tabla clientes</span>
+      </div>
+
+      <form id="clientForm" class="stock-form">
+        <input type="hidden" id="cliId" value="" />
+        <div class="form-row-2">
+          <div class="input-group">
+            <label for="cliNombre">Nombre o Razón Social *</label>
+            <input type="text" id="cliNombre" class="form-input" placeholder="Ej: María González / Comercial Sur" required />
+          </div>
+          <div class="input-group">
+            <label for="cliRut">RUT Identificación (Único)</label>
+            <input type="text" id="cliRut" class="form-input" placeholder="Ej: 12.345.678-9" />
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="input-group">
+            <label for="cliGiro">Giro</label>
+            <input type="text" id="cliGiro" class="form-input" placeholder="Ej: Particular / Comercio" />
+          </div>
+          <div class="input-group">
+            <label for="cliTelefono">Teléfono</label>
+            <input type="text" id="cliTelefono" class="form-input" placeholder="Ej: +56 9 1234 5678" />
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="input-group">
+            <label for="cliEmail">Correo Electrónico</label>
+            <input type="email" id="cliEmail" class="form-input" placeholder="cliente@correo.cl" />
+          </div>
+          <div class="input-group">
+            <label for="cliDireccion">Dirección</label>
+            <input type="text" id="cliDireccion" class="form-input" placeholder="Dirección comercial o despacho" />
+          </div>
+        </div>
+
+        <div id="cliFeedback" class="status-box hidden"></div>
+
+        <div style="display: flex; gap: 0.75rem;">
+          <button type="submit" class="btn btn-primary" id="cliSubmitBtn">Guardar Cliente en .db</button>
+          <button type="button" class="btn btn-refresh" id="cliCancelEditBtn">Limpiar formulario</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Listado y Derechos ARSOP+ -->
+    <section class="panel-card">
+      <div class="panel-header">
+        <div>
+          <h2>Directorio de Clientes y Derechos del Titular</h2>
+          <p class="panel-subtitle">Muestra los últimos 5 clientes registrados o busca por nombre, RUT, giro o contacto para editar, exportar (Portabilidad Art. 9) o suprimir (Art. 6)</p>
+        </div>
+        <span class="panel-badge info" id="clientsCountBadge">Últimos 5</span>
+      </div>
+
+      <form id="clientSearchForm" class="search-toolbar">
+        <div class="search-input-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input
+            type="search"
+            id="clientSearchInput"
+            placeholder="Buscar cliente por nombre, RUT, giro, teléfono o correo..."
+            autocomplete="off"
+          />
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm" id="clientSearchBtn">Buscar</button>
+        <button type="button" class="btn btn-refresh btn-sm" id="clientClearSearchBtn">Limpiar</button>
+      </form>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Cliente / RUT</th>
+              <th>Contacto</th>
+              <th class="text-right">Compras</th>
+              <th class="text-right">Acciones (Editar / Ley 21.719)</th>
+            </tr>
+          </thead>
+          <tbody id="clientsTableBody">
+            <tr>
+              <td colspan="4" class="empty-cell">Cargando clientes desde tu archivo .db local...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</section>

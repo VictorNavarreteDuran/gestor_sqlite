@@ -1,0 +1,266 @@
+<!-- Vista de Ingreso / Registro de Ventas (POS) -->
+<section id="section-ventas" class="dashboard-section hidden">
+  <div class="page-header">
+    <div>
+      <span class="badge">Punto de Venta (POS) y Facturación</span>
+      <h1>Ingreso de Ventas</h1>
+      <p class="subtitle-left">Busca productos por nombre, SKU o código de barras, agrégalos a la venta, aplica descuento en la venta total y registra el cobro con descuento automático de stock vía Kardex.</p>
+    </div>
+    <div class="panel-controls">
+      <label for="posActiveUser" class="kpi-label">Cajero / Vendedor:</label>
+      <select id="posActiveUser" class="filter-select" title="Usuario que registra la venta">
+        <option value="">Cargando usuario...</option>
+      </select>
+      <button type="button" class="btn btn-refresh" id="refreshSalesBtn">
+        Actualizar catálogo
+      </button>
+    </div>
+  </div>
+
+  <!-- Layout Principal POS: Buscador de Productos (Izquierda) + Ticket de Venta y Descuento Total (Derecha) -->
+  <div class="pos-layout-grid">
+    <!-- Columna Izquierda: Buscador de Productos para Agregar a la Venta -->
+    <section class="panel-card">
+      <div class="panel-header">
+        <div>
+          <h2>1. Buscador de Productos</h2>
+          <p class="panel-subtitle">Escribe nombre, SKU o escanea el código de barras para encontrar y agregar el producto vendido</p>
+        </div>
+        <span class="panel-badge info" id="posProductsCountBadge">0 productos</span>
+      </div>
+
+      <form id="posSearchForm" class="search-toolbar">
+        <div class="search-input-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input
+            type="search"
+            id="posSearchInput"
+            placeholder="Buscar producto por nombre, SKU o código de barras (Enter para agregar)..."
+            autocomplete="off"
+          />
+        </div>
+
+        <select id="posCategoryFilter" class="filter-select">
+          <option value="">Todas las categorías</option>
+        </select>
+
+        <select id="posStockFilter" class="filter-select">
+          <option value="0" selected>Todos los activos</option>
+          <option value="1">Solo con stock (&gt; 0)</option>
+        </select>
+
+        <button type="submit" class="btn btn-primary btn-sm">Buscar</button>
+        <button type="button" class="btn btn-refresh btn-sm" id="posClearSearchBtn">Limpiar</button>
+      </form>
+
+      <div class="table-responsive pos-products-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Producto / SKU / Cód.</th>
+              <th>Categoría</th>
+              <th class="text-right">Stock Disp.</th>
+              <th class="text-right">Precio Venta</th>
+              <th class="text-right" style="width: 175px;">Cant. a Vender</th>
+            </tr>
+          </thead>
+          <tbody id="posProductsTableBody">
+            <tr>
+              <td colspan="5" class="empty-cell">Cargando buscador de productos...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Columna Derecha: Carrito de Productos Vendidos, Descuento Total y Pago -->
+    <section class="panel-card pos-ticket-panel">
+      <div class="panel-header">
+        <div>
+          <h2>2. Productos en la Venta Actual</h2>
+          <p class="panel-subtitle">Congela precio y costo histórico al confirmar la transacción</p>
+        </div>
+        <div class="panel-controls">
+          <span class="panel-badge success-badge" id="posCartBadge">0 ítems</span>
+          <button type="button" class="btn btn-refresh btn-sm" id="posClearCartBtn" title="Vaciar todos los productos de la venta actual">
+            Vaciar
+          </button>
+        </div>
+      </div>
+
+      <div class="table-responsive pos-cart-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th class="text-right">Precio Unit.</th>
+              <th class="text-right" style="width: 110px;">Cantidad</th>
+              <th class="text-right" style="width: 110px;">Dcto. Línea ($)</th>
+              <th class="text-right">Subtotal</th>
+              <th class="text-right" style="width: 48px;"></th>
+            </tr>
+          </thead>
+          <tbody id="posCartTableBody">
+            <tr>
+              <td colspan="6" class="empty-cell">Selecciona o busca productos en el panel izquierdo para agregarlos a la venta.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Bloque de Descuento en la Venta Total (descuento_global) -->
+      <div class="pos-discount-box">
+        <div class="pos-discount-header">
+          <div>
+            <strong>¿Hubo descuento en la venta total?</strong>
+            <p class="cell-secondary">Se guarda en <code>ventas.descuento_global</code> y rebaja el total a pagar</p>
+          </div>
+          <div class="pos-quick-discounts">
+            <button type="button" class="btn-chip" data-discount-pct="0">Sin dcto</button>
+            <button type="button" class="btn-chip" data-discount-pct="5">5%</button>
+            <button type="button" class="btn-chip" data-discount-pct="10">10%</button>
+            <button type="button" class="btn-chip" data-discount-pct="15">15%</button>
+          </div>
+        </div>
+
+        <div class="form-row-3" style="margin-top: 0.65rem; align-items: end;">
+          <div class="input-group">
+            <label for="posDiscountType">Tipo de Descuento</label>
+            <select id="posDiscountType" class="filter-select">
+              <option value="AMOUNT" selected>Monto fijo ($ CLP)</option>
+              <option value="PERCENT">Porcentaje (%) sobre subtotal</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="posDiscountInput" id="posDiscountInputLabel">Valor del Descuento ($)</label>
+            <input
+              type="number"
+              step="any"
+              min="0"
+              id="posDiscountInput"
+              class="form-input font-mono"
+              value="0"
+              placeholder="0"
+            />
+          </div>
+          <div class="input-group">
+            <label>Descuento Total Aplicado</label>
+            <div class="pos-discount-applied font-mono" id="posDiscountComputedDisplay">-$0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumen Financiero de la Venta -->
+      <div class="pos-totals-box">
+        <div class="pos-total-row">
+          <span>Subtotal Productos:</span>
+          <span class="font-mono" id="posSummarySubtotalBruto">$0</span>
+        </div>
+        <div class="pos-total-row discount-row">
+          <span>Descuento en Venta Total (<code>descuento_global</code>):</span>
+          <span class="font-mono" id="posSummaryDescuentoGlobal">-$0</span>
+        </div>
+        <div class="pos-total-row muted-row">
+          <span>Subtotal Neto Estimado (<code>subtotal_neto</code>):</span>
+          <span class="font-mono" id="posSummaryNeto">$0</span>
+        </div>
+        <div class="pos-total-row muted-row">
+          <span>IVA 19% Estimado (<code>total_iva</code>):</span>
+          <span class="font-mono" id="posSummaryIva">$0</span>
+        </div>
+        <div class="pos-total-row grand-total-row">
+          <span>TOTAL VENTA A PAGAR:</span>
+          <span class="font-mono" id="posSummaryTotalVenta">$0</span>
+        </div>
+      </div>
+
+      <!-- Formulario de Documento, Cliente y Medio de Pago -->
+      <form id="posCheckoutForm" class="stock-form">
+        <div class="form-row-3">
+          <div class="input-group">
+            <label for="posTipoDoc">Tipo Documento *</label>
+            <select id="posTipoDoc" class="filter-select" required>
+              <option value="BOLETA" selected>BOLETA (Predet.)</option>
+              <option value="FACTURA">FACTURA</option>
+              <option value="TICKET_INTERNO">TICKET_INTERNO</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="posFolioDoc">Folio Documento</label>
+            <input type="text" id="posFolioDoc" class="form-input" placeholder="Ej: 1024 (Opcional)" />
+          </div>
+          <div class="input-group">
+            <label for="posClienteSelect">Cliente</label>
+            <select id="posClienteSelect" class="filter-select">
+              <option value="">Cliente General (Sin RUT)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row-3">
+          <div class="input-group">
+            <label for="posMetodoPago">Método de Pago *</label>
+            <select id="posMetodoPago" class="filter-select" required>
+              <option value="EFECTIVO" selected>EFECTIVO</option>
+              <option value="DEBITO">DEBITO</option>
+              <option value="CREDITO">CREDITO</option>
+              <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+              <option value="CREDITO_INTERNO">CREDITO_INTERNO</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="posReferenciaPago">N° Voucher / Comprobante</label>
+            <input type="text" id="posReferenciaPago" class="form-input" placeholder="Opcional (ej. Transbank / Transf.)" />
+          </div>
+          <div class="input-group">
+            <label for="posEstadoVenta">Estado de Venta *</label>
+            <select id="posEstadoVenta" class="filter-select" required>
+              <option value="COMPLETADA" selected>COMPLETADA (Descuenta stock)</option>
+              <option value="PENDIENTE">PENDIENTE</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="posFeedback" class="status-box hidden"></div>
+
+        <button type="submit" class="btn btn-secondary pos-submit-btn" id="posSubmitSaleBtn">
+          Confirmar y Registrar Venta
+        </button>
+      </form>
+    </section>
+  </div>
+
+  <!-- Tabla Inferior: Historial Reciente de Ventas Registradas -->
+  <section class="panel-card">
+    <div class="panel-header">
+      <div>
+        <h2>Historial Reciente de Ventas Registradas</h2>
+        <p class="panel-subtitle">Ventas guardadas en la base de datos con su detalle de productos, descuento global aplicado y método de pago</p>
+      </div>
+      <span class="panel-badge info" id="posHistoryCountBadge">0 ventas</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID / Documento</th>
+            <th>Fecha</th>
+            <th>Cliente / Cajero</th>
+            <th>Productos Vendidos</th>
+            <th>Pago</th>
+            <th class="text-right">Neto + IVA</th>
+            <th class="text-right">Dcto. Total</th>
+            <th class="text-right">Total Venta</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="posSalesHistoryBody">
+          <tr>
+            <td colspan="9" class="empty-cell">Cargando historial de ventas...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>

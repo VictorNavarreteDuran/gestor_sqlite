@@ -1,0 +1,378 @@
+<!-- Vista de Gestión de Stock, Productos Nuevos y Mermas (Kardex Inmutable) -->
+<section id="section-kardex" class="dashboard-section hidden">
+  <div class="page-header">
+    <div>
+      <span class="badge">Control de Existencias y Kardex Inmutable</span>
+      <h1>Gestión de Productos, Stock y Mermas</h1>
+      <p class="subtitle-left">Registra productos nuevos, ingresos de stock y bajas por mermas/pérdidas actualizando el inventario vía Kardex.</p>
+    </div>
+    <div class="panel-controls">
+      <label for="stockActiveUser" class="kpi-label">Operador:</label>
+      <select id="stockActiveUser" class="filter-select" title="Usuario responsable del movimiento">
+        <option value="">Cargando usuario...</option>
+      </select>
+      <button type="button" class="btn btn-refresh" id="refreshStockMgmtBtn">
+        Actualizar datos
+      </button>
+    </div>
+  </div>
+
+  <!-- Selector de Acción: El usuario elige en un botón qué operación desea realizar y se despliega el formulario -->
+  <section class="panel-card stock-launcher-card">
+    <div class="panel-header">
+      <div>
+        <h2>¿Qué operación deseas realizar?</h2>
+        <p class="panel-subtitle">Selecciona un botón para desplegar el formulario correspondiente</p>
+      </div>
+      <span class="panel-badge info" id="stockActiveActionBadge">Selecciona una acción</span>
+    </div>
+
+    <div class="stock-launcher-buttons" id="stockLauncherButtons" role="tablist" aria-label="Operaciones de gestión de stock">
+      <button
+        type="button"
+        class="stock-action-choice-btn choice-info"
+        data-stock-action="new"
+        id="btnActionNewProduct"
+        aria-expanded="false"
+      >
+        <span class="choice-icon info">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </span>
+        <span class="choice-content">
+          <strong>1. Ingresar Producto Nuevo</strong>
+          <small>Crear artículo en catálogo con stock inicial</small>
+        </span>
+      </button>
+
+      <button
+        type="button"
+        class="stock-action-choice-btn choice-success"
+        data-stock-action="entry"
+        id="btnActionStockEntry"
+        aria-expanded="false"
+      >
+        <span class="choice-icon success">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="6" x2="12" y2="18"/></svg>
+        </span>
+        <span class="choice-content">
+          <strong>2. Ingresar Nuevo Stock</strong>
+          <small>Abastecer o sumar unidades a un producto</small>
+        </span>
+      </button>
+
+      <button
+        type="button"
+        class="stock-action-choice-btn choice-danger"
+        data-stock-action="loss"
+        id="btnActionStockLoss"
+        aria-expanded="false"
+      >
+        <span class="choice-icon danger">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="7 13 12 18 17 13"/><line x1="12" y1="18" x2="12" y2="6"/></svg>
+        </span>
+        <span class="choice-content">
+          <strong>3. Ingresar Mermas o Pérdidas</strong>
+          <small>Descontar stock por daño, vencimiento o ajuste</small>
+        </span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Contenedor de Formularios Desplegables -->
+  <div class="stock-collapsible-container" id="stockCollapsibleContainer">
+    <!-- Panel Desplegable 1: Ingresar Producto Nuevo -->
+    <section class="panel-card stock-collapsible-panel hidden" id="panelNewProduct">
+      <div class="panel-header">
+        <div>
+          <h2>1. Ingresar Producto Nuevo</h2>
+          <p class="panel-subtitle">Crea un artículo en catálogo y registra su stock inicial mediante Kardex</p>
+        </div>
+        <div class="panel-controls">
+          <span class="panel-badge info">Catálogo</span>
+          <button type="button" class="btn btn-refresh btn-sm" data-close-stock-panel>Cerrar formulario ✕</button>
+        </div>
+      </div>
+
+      <form id="formNewProduct" class="stock-form">
+        <div class="form-row-2">
+          <div class="input-group">
+            <label for="npNombre">Nombre del Producto *</label>
+            <input type="text" id="npNombre" class="form-input" placeholder="Ej: Artículo o Producto General" required />
+          </div>
+          <div class="input-group">
+            <label for="npUnidad">Unidad de Medida *</label>
+            <select id="npUnidad" class="filter-select" required>
+              <option value="UN" selected>UN (Unidad)</option>
+              <option value="KG">KG (Kilogramo)</option>
+              <option value="LT">LT (Litro)</option>
+              <option value="MT">MT (Metro)</option>
+              <option value="CAJA">CAJA</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="input-group">
+            <label for="npSku">SKU (Único)</label>
+            <input type="text" id="npSku" class="form-input" placeholder="Ej: PROD-001" />
+          </div>
+          <div class="input-group">
+            <label for="npBarcode">Código de Barras (Único)</label>
+            <input type="text" id="npBarcode" class="form-input" placeholder="Ej: 780000000001" />
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="input-group">
+            <label for="npCategoria">Categoría Existente</label>
+            <select id="npCategoria" class="filter-select">
+              <option value="">Sin categoría</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="npNuevaCategoria">O Crear Categoría</label>
+            <input type="text" id="npNuevaCategoria" class="form-input" placeholder="Ej: General / Insumos" />
+          </div>
+        </div>
+
+        <div class="form-row-3">
+          <div class="input-group">
+            <label for="npCosto">Costo Prom. ($, entero) *</label>
+            <input type="number" step="1" min="0" inputmode="numeric" id="npCosto" class="form-input font-mono" placeholder="Ingresa costo en $" required />
+          </div>
+          <div class="input-group">
+            <label for="npPrecioNeto">Precio Neto ($, entero) *</label>
+            <input type="number" step="1" min="0" inputmode="numeric" id="npPrecioNeto" class="form-input font-mono" placeholder="Ingresa precio neto" required />
+          </div>
+          <div class="input-group">
+            <label for="npExento">Régimen IVA</label>
+            <select id="npExento" class="filter-select">
+              <option value="0" selected>Afecto (0 - 19%)</option>
+              <option value="1">Exento (1)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row-3">
+          <div class="input-group">
+            <label for="npPrecioFinal">Precio Venta Final ($, entero) *</label>
+            <input type="number" step="1" min="0" inputmode="numeric" id="npPrecioFinal" class="form-input font-mono" placeholder="Ingresa precio final" required />
+          </div>
+          <div class="input-group">
+            <label for="npStockMinimo" id="npStockMinimoLabel">Stock Mínimo (entero UN/CAJA) *</label>
+            <input type="number" step="1" min="0" inputmode="numeric" id="npStockMinimo" class="form-input font-mono" placeholder="Ingresa stock mínimo" required />
+          </div>
+          <div class="input-group">
+            <label for="npStockInicial" id="npStockInicialLabel">Stock Inicial (entero UN/CAJA) *</label>
+            <input type="number" step="1" min="0" inputmode="numeric" id="npStockInicial" class="form-input font-mono" placeholder="Ingresa stock inicial" required />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="npDescripcion">Descripción</label>
+          <input type="text" id="npDescripcion" class="form-input" placeholder="Detalle opcional del producto..." />
+        </div>
+
+        <div id="npFeedback" class="status-box hidden"></div>
+
+        <button type="submit" class="btn btn-primary" id="npSubmitBtn">
+          Registrar Producto Nuevo
+        </button>
+      </form>
+    </section>
+
+    <!-- Panel Desplegable 2: Ingresar Stock Nuevo (Con Barra de Búsqueda de Producto) -->
+    <section class="panel-card stock-collapsible-panel hidden" id="panelStockEntry">
+      <div class="panel-header">
+        <div>
+          <h2>2. Ingresar Nuevo Stock</h2>
+          <p class="panel-subtitle">Busca el producto por nombre, SKU o código de barras y suma existencias en <code>movimientos_inventario</code></p>
+        </div>
+        <div class="panel-controls">
+          <span class="panel-badge success-badge">Entrada (+)</span>
+          <button type="button" class="btn btn-refresh btn-sm" data-close-stock-panel>Cerrar formulario ✕</button>
+        </div>
+      </div>
+
+      <form id="formStockEntry" class="stock-form">
+        <div class="input-group">
+          <label for="seProductSearchInput">Buscar Producto para Abastecer (Nombre, SKU o Código de Barras)</label>
+          <div class="search-input-wrap stock-search-bar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              type="search"
+              id="seProductSearchInput"
+              placeholder="Escribe el nombre, SKU o código de barras para filtrar y elegir el producto..."
+              autocomplete="off"
+            />
+          </div>
+          <div id="seProductSearchResults" class="stock-search-results hidden"></div>
+        </div>
+
+        <div class="input-group">
+          <label for="seProducto">Producto Seleccionado *</label>
+          <select id="seProducto" class="filter-select" required>
+            <option value="">Selecciona un producto...</option>
+          </select>
+          <div id="seSelectedProductInfo" class="selected-product-pill hidden"></div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="input-group">
+            <label for="seTipo">Tipo de Movimiento *</label>
+            <select id="seTipo" class="filter-select" required>
+              <option value="ENTRADA_COMPRA" selected>ENTRADA_COMPRA (Predet.)</option>
+              <option value="AJUSTE_POSITIVO">AJUSTE_POSITIVO</option>
+              <option value="DEVOLUCION_CLIENTE">DEVOLUCION_CLIENTE</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="seCantidad" id="seCantidadLabel">Cantidad a Ingresar (&gt; 0) *</label>
+            <input type="number" step="1" min="1" inputmode="numeric" id="seCantidad" class="form-input font-mono" placeholder="Ingresa cantidad manual" required />
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="input-group">
+            <label for="seCostoUnitario">Costo Unitario Neto ($, entero) *</label>
+            <input type="number" step="1" min="0" inputmode="numeric" id="seCostoUnitario" class="form-input font-mono" placeholder="Ingresa costo unitario en $" required />
+          </div>
+          <div class="input-group">
+            <label for="seReferencia">Referencia Origen</label>
+            <input type="text" id="seReferencia" class="form-input" value="INGRESO BODEGA" placeholder="Ej: FACTURA #104 / CONTEO" />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="seMotivo">Motivo / Observación *</label>
+          <input type="text" id="seMotivo" class="form-input" value="Reposición de stock en bodega" required />
+        </div>
+
+        <div id="seFeedback" class="status-box hidden"></div>
+
+        <button type="submit" class="btn btn-secondary" id="seSubmitBtn">
+          Confirmar Ingreso de Stock
+        </button>
+      </form>
+    </section>
+
+    <!-- Panel Desplegable 3: Ingresar Mermas o Pérdidas (Con Barra de Búsqueda de Producto) -->
+    <section class="panel-card stock-collapsible-panel hidden" id="panelStockLoss">
+      <div class="panel-header">
+        <div>
+          <h2>3. Ingresar Mermas o Pérdidas</h2>
+          <p class="panel-subtitle">Busca el producto por nombre, SKU o código de barras y descuenta existencias por deterioro, vencimiento o pérdida</p>
+        </div>
+        <div class="panel-controls">
+          <span class="panel-badge danger">Salida (-)</span>
+          <button type="button" class="btn btn-refresh btn-sm" data-close-stock-panel>Cerrar formulario ✕</button>
+        </div>
+      </div>
+
+      <form id="formStockLoss" class="stock-form">
+        <div class="input-group">
+          <label for="slProductSearchInput">Buscar Producto Afectado (Nombre, SKU o Código de Barras)</label>
+          <div class="search-input-wrap stock-search-bar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              type="search"
+              id="slProductSearchInput"
+              placeholder="Escribe el nombre, SKU o código de barras para filtrar y elegir el producto..."
+              autocomplete="off"
+            />
+          </div>
+          <div id="slProductSearchResults" class="stock-search-results hidden"></div>
+        </div>
+
+        <div class="input-group">
+          <label for="slProducto">Producto Seleccionado *</label>
+          <select id="slProducto" class="filter-select" required>
+            <option value="">Selecciona un producto...</option>
+          </select>
+          <div id="slSelectedProductInfo" class="selected-product-pill hidden"></div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="input-group">
+            <label for="slTipo">Tipo de Baja *</label>
+            <select id="slTipo" class="filter-select" required>
+              <option value="MERMA" selected>MERMA (Pérdida / Daño - Predet.)</option>
+              <option value="AJUSTE_NEGATIVO">AJUSTE_NEGATIVO (Diferencia conteo)</option>
+              <option value="DEVOLUCION_PROVEEDOR">DEVOLUCION_PROVEEDOR</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="slCantidad" id="slCantidadLabel">Cantidad a Descontar (&gt; 0) *</label>
+            <input type="number" step="1" min="1" inputmode="numeric" id="slCantidad" class="form-input font-mono" placeholder="Ingresa cantidad manual" required />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="slReferencia">Referencia Origen</label>
+          <input type="text" id="slReferencia" class="form-input" value="ACTA DE MERMA" placeholder="Ej: ACTA MERMA #12 / REVISION" />
+        </div>
+
+        <div class="input-group">
+          <label for="slMotivo">Motivo de la Merma o Pérdida *</label>
+          <input type="text" id="slMotivo" class="form-input" placeholder="Ej: Producto dañado en transporte / vencimiento" required />
+        </div>
+
+        <div id="slFeedback" class="status-box hidden"></div>
+
+        <button type="submit" class="btn btn-danger" id="slSubmitBtn">
+          Registrar Merma / Pérdida
+        </button>
+      </form>
+    </section>
+  </div>
+
+  <!-- Tabla Inferior: Historial de Movimientos en Kardex -->
+  <section class="panel-card">
+    <div class="panel-header">
+      <div>
+        <h2>Historial Reciente de Movimientos (Kardex Inmutable)</h2>
+        <p class="panel-subtitle">Auditoría de todas las entradas, salidas, ajustes y mermas que actualizan <code>stock_actual</code> mediante el trigger</p>
+      </div>
+      <div class="panel-controls">
+        <select id="kardexFilterTipo" class="filter-select filter-select-sm">
+          <option value="">Todos los movimientos (Predet.)</option>
+          <option value="ENTRADA_COMPRA">ENTRADA_COMPRA</option>
+          <option value="AJUSTE_POSITIVO">AJUSTE_POSITIVO</option>
+          <option value="DEVOLUCION_CLIENTE">DEVOLUCION_CLIENTE</option>
+          <option value="MERMA">MERMA</option>
+          <option value="AJUSTE_NEGATIVO">AJUSTE_NEGATIVO</option>
+          <option value="DEVOLUCION_PROVEEDOR">DEVOLUCION_PROVEEDOR</option>
+          <option value="SALIDA_VENTA">SALIDA_VENTA</option>
+        </select>
+        <select id="kardexFilterLimit" class="filter-select filter-select-sm">
+          <option value="15">Últimos 15</option>
+          <option value="30" selected>Últimos 30 (Predet.)</option>
+          <option value="60">Últimos 60</option>
+        </select>
+        <span class="panel-badge info" id="kardexCountBadge">0 movimientos</span>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID / Fecha</th>
+            <th>Producto / SKU</th>
+            <th>Tipo Movimiento</th>
+            <th class="text-right">Cantidad</th>
+            <th class="text-right">Stock Ant. → Resultante</th>
+            <th class="text-right">Costo Unit.</th>
+            <th>Referencia / Motivo</th>
+            <th>Operador</th>
+          </tr>
+        </thead>
+        <tbody id="kardexTableBody">
+          <tr>
+            <td colspan="8" class="empty-cell">Cargando historial de Kardex...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>

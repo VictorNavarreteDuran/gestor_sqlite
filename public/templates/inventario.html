@@ -1,0 +1,210 @@
+<!-- Vista de Inventario -->
+<section id="section-inventario" class="dashboard-section hidden">
+  <div class="page-header">
+    <div>
+      <span class="badge">Catálogo y Control de Existencias</span>
+      <h1>Sección de Inventario</h1>
+      <p class="subtitle-left">Buscador avanzado de productos, alertas de reposición de urgencia y ranking de productos más vendidos.</p>
+    </div>
+    <button type="button" class="btn btn-refresh" id="refreshInventoryBtn">
+      Actualizar inventario
+    </button>
+  </div>
+
+  <!-- Paneles Superiores: Stock de Urgencia, Baja Rotación y Productos Más Vendidos -->
+  <div class="dashboard-panels">
+    <!-- Columna Izquierda: Stock de Urgencia + Artículos con Pocas Ventas debajo -->
+    <div class="dashboard-Section-stack" style="display: flex; flex-direction: column; gap: 1.5rem;">
+      <!-- Panel 1: Productos que necesitan Stock de Urgencia -->
+      <section class="panel-card">
+        <div class="panel-header">
+          <div>
+            <h2>Stock de Urgencia</h2>
+            <p class="panel-subtitle">Productos agotados o en/bajo el stock mínimo que requieren reposición inmediata</p>
+          </div>
+          <div class="panel-controls">
+            <select id="invUrgentLimit" class="filter-select filter-select-sm" title="Límite predeterminado de resultados">
+              <option value="10">Top 10</option>
+              <option value="20" selected>Top 20 (Predet.)</option>
+              <option value="50">Top 50</option>
+            </select>
+            <span class="panel-badge danger" id="invUrgentBadge">0 urgentes</span>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Producto / SKU</th>
+                <th>Categoría</th>
+                <th class="text-right">Stock Actual</th>
+                <th class="text-right">Mínimo</th>
+                <th class="text-right">Déficit</th>
+                <th class="text-right">Costo Reposición</th>
+                <th>Urgencia</th>
+              </tr>
+            </thead>
+            <tbody id="invUrgentTableBody">
+              <tr>
+                <td colspan="7" class="empty-cell">Cargando alertas de stock de urgencia...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Panel 1.2 (Debajo de Stock de Urgencia): Artículos con Pocas Ventas y Fecha de Ingreso de Stock -->
+      <section class="panel-card">
+        <div class="panel-header">
+          <div>
+            <h2>Artículos con Pocas Ventas (Baja Rotación)</h2>
+            <p class="panel-subtitle">Productos con menor salida comercial y su última fecha de ingreso de stock en Kardex</p>
+          </div>
+          <div class="panel-controls">
+            <select id="invSlowLimit" class="filter-select filter-select-sm" title="Límite predeterminado de baja rotación">
+              <option value="5">Top 5</option>
+              <option value="10" selected>Top 10 (Predet.)</option>
+              <option value="25">Top 25</option>
+            </select>
+            <span class="panel-badge warning" id="invSlowBadge">0 artículos</span>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Producto / SKU</th>
+                <th>Categoría</th>
+                <th class="text-right">Vendido</th>
+                <th class="text-right">Stock Actual</th>
+                <th>Fecha Ingreso Stock</th>
+                <th>Ref. Ingreso</th>
+              </tr>
+            </thead>
+            <tbody id="invSlowTableBody">
+              <tr>
+                <td colspan="6" class="empty-cell">Cargando artículos de baja rotación...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- Panel 2: Productos que Más se Venden -->
+    <section class="panel-card">
+      <div class="panel-header">
+        <div>
+          <h2>Productos Más Vendidos</h2>
+          <p class="panel-subtitle">Ranking histórico en ventas <code>COMPLETADA</code> con utilidad congelada</p>
+        </div>
+        <div class="panel-controls">
+          <select id="invTopLimit" class="filter-select filter-select-sm" title="Límite predeterminado de ranking">
+            <option value="5">Top 5</option>
+            <option value="10" selected>Top 10 (Predet.)</option>
+            <option value="25">Top 25</option>
+          </select>
+          <span class="panel-badge info" id="invTopBadge">Top 10</span>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Producto / SKU</th>
+              <th class="text-right">Vendido</th>
+              <th class="text-right">Ingresos</th>
+              <th class="text-right">Utilidad Hist.</th>
+              <th class="text-right">Stock Actual</th>
+            </tr>
+          </thead>
+          <tbody id="invTopTableBody">
+            <tr>
+              <td colspan="6" class="empty-cell">Cargando productos más vendidos...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Panel Principal: Buscador de Productos y Datos Encontrados -->
+  <section class="panel-card">
+    <div class="panel-header">
+      <div>
+        <h2>Buscador de Productos</h2>
+        <p class="panel-subtitle">Consulta parametrizada por nombre, SKU, código de barras, categoría, unidad de medida y estado</p>
+      </div>
+      <span class="panel-badge info" id="invSearchCountBadge">0 encontrados</span>
+    </div>
+
+    <form id="invSearchForm" class="search-toolbar">
+      <div class="search-input-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input
+          type="search"
+          id="invSearchInput"
+          placeholder="Buscar por nombre, SKU, código de barras o descripción..."
+          autocomplete="off"
+        />
+      </div>
+
+      <select id="invCategoryFilter" class="filter-select">
+        <option value="">Todas las categorías (Predet.)</option>
+      </select>
+
+      <select id="invUnitFilter" class="filter-select">
+        <option value="">Todas las unidades (Predet.)</option>
+        <option value="UN">UN (Unidad)</option>
+        <option value="KG">KG (Kilogramo)</option>
+        <option value="LT">LT (Litro)</option>
+        <option value="MT">MT (Metro)</option>
+        <option value="CAJA">CAJA</option>
+      </select>
+
+      <select id="invStatusFilter" class="filter-select">
+        <option value="1" selected>Activos (1 - Predet.)</option>
+        <option value="0">Inactivos (0)</option>
+        <option value="ALL">Todos</option>
+      </select>
+
+      <select id="invLimitFilter" class="filter-select">
+        <option value="25">25 registros</option>
+        <option value="50" selected>50 registros (Predet.)</option>
+        <option value="100">100 registros</option>
+      </select>
+
+      <button type="submit" class="btn btn-primary btn-sm" id="invSearchBtn">Buscar</button>
+      <button type="button" class="btn btn-refresh btn-sm" id="invResetBtn">Restablecer</button>
+    </form>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID / SKU / Cód. Barras</th>
+            <th>Producto / Descripción</th>
+            <th>Categoría</th>
+            <th>Unidad</th>
+            <th class="text-right">Costo Prom.</th>
+            <th class="text-right">Precio Neto</th>
+            <th>IVA</th>
+            <th class="text-right">Precio Final</th>
+            <th class="text-right">Stock Actual</th>
+            <th class="text-right">Stock Mín.</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="invSearchResultsBody">
+          <tr>
+            <td colspan="11" class="empty-cell">Ejecutando consulta con parámetros predeterminados...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>
