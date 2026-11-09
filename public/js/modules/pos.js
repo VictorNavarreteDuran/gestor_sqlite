@@ -5,6 +5,11 @@ import {
   showFeedback,
 } from '../utils/formatters.js';
 import { updateNavDbLabel } from '../components/navbar.js';
+import {
+  getSalesSectionData,
+  registerSaleTransaction,
+  searchPosProducts,
+} from '../db/repositories/sales.repo.js';
 
 const posActiveUser = document.getElementById('posActiveUser');
 const refreshSalesBtn = document.getElementById('refreshSalesBtn');
@@ -394,7 +399,7 @@ export async function loadSalesSection() {
   }
 
   try {
-    const data = await window.LocalSqliteEngine.getSalesSectionData({
+    const data = await getSalesSectionData({
       q: posSearchInput?.value.trim() || '',
       id_categoria: posCategoryFilter?.value || '',
       solo_con_stock: posStockFilter?.value || '0',
@@ -432,7 +437,7 @@ export async function loadSalesSection() {
 
 async function executePosCatalogSearch() {
   try {
-    const productos = await window.LocalSqliteEngine.searchPosProducts({
+    const productos = await searchPosProducts({
       q: posSearchInput?.value.trim() || '',
       id_categoria: posCategoryFilter?.value || '',
       solo_con_stock: posStockFilter?.value || '0',
@@ -644,7 +649,7 @@ export function initPosModule() {
           })),
         };
 
-        const data = await window.LocalSqliteEngine.registerSaleTransaction(payload);
+        const data = await registerSaleTransaction(payload);
 
         const dctoMsg =
           Number(data.venta.descuento_global) > 0

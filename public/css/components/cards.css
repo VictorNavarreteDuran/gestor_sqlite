@@ -1,0 +1,156 @@
+/**
+ * Componentes: Tarjetas, Paneles y Métricas KPI
+ * Estilos para tarjetas de elevación, contenedores de paneles e indicadores de resumen.
+ */
+
+.card,
+.panel-card,
+.kpi-card {
+  border: 1px solid rgba(71, 91, 119, 0.58);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--transition-normal),
+    background var(--transition-normal),
+    box-shadow var(--transition-normal),
+    transform var(--transition-normal);
+}
+
+.card,
+.panel-card {
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.card {
+  padding: clamp(1.25rem, 3vw, 1.85rem);
+  background: linear-gradient(145deg, rgba(27, 43, 65, 0.98), rgba(20, 32, 51, 0.98));
+}
+
+.panel-card {
+  min-width: 0;
+  padding: clamp(1rem, 2vw, 1.4rem);
+  background: linear-gradient(145deg, rgba(25, 40, 61, 0.98), rgba(20, 32, 51, 0.98));
+}
+
+.kpi-card {
+  min-width: 0;
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  background: linear-gradient(145deg, #1b2b42, #152238);
+}
+
+.card:hover,
+.panel-card:hover,
+.kpi-card:hover {
+  border-color: rgba(96, 165, 250, 0.42);
+  box-shadow: var(--shadow-md);
+}
+
+/* Rejilla y Contenido KPI */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 1rem;
+}
+
+.kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kpi-value {
+  font-size: clamp(1.45rem, 3vw, 1.8rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+
+.kpi-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Envoltorios de Iconos */
+.card-icon,
+.brand-logo,
+.kpi-icon,
+.choice-icon,
+.rank-badge,
+.step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 11px;
+}
+
+.card-icon {
+  width: 46px;
+  height: 46px;
+}
+
+.kpi-icon {
+  width: 34px;
+  height: 34px;
+}
+
+.choice-icon {
+  width: 42px;
+  height: 42px;
+}
+
+.rank-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.16);
+  color: var(--primary-light);
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.step-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--primary-light);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* Variantes de Color para Iconos */
+.upload-icon,
+.kpi-icon.blue,
+.choice-icon.info {
+  background: rgba(59, 130, 246, 0.16);
+  color: var(--primary-light);
+}
+
+.download-icon,
+.kpi-icon.emerald,
+.choice-icon.success {
+  background: rgba(16, 185, 129, 0.16);
+  color: var(--emerald-light);
+}
+
+.kpi-icon.purple {
+  background: rgba(168, 85, 247, 0.15);
+  color: var(--purple-light);
+}
+
+.kpi-icon.amber {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--amber-light);
+}
+
+.choice-icon.danger {
+  background: rgba(239, 68, 68, 0.18);
+  color: var(--danger-light);
+}

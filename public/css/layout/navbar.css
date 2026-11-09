@@ -1,0 +1,135 @@
+/**
+ * Layout: Barra de Navegación Superior
+ * Estilos para el navbar principal, marca, enlaces y acciones globales.
+ */
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(11, 18, 32, 0.88);
+  border-bottom: 1px solid var(--border);
+  border-bottom-color: rgba(71, 91, 119, 0.55);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.12);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.navbar-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0.9rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brand-text strong {
+  color: var(--primary-light);
+}
+
+.brand-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: rgba(59, 130, 246, 0.16);
+  color: var(--primary-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.navbar-links {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.85rem;
+  min-height: 40px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: background 0.18s, color 0.18s;
+}
+
+.nav-link:hover {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--text);
+}
+
+.nav-link.active {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--primary-light);
+  box-shadow: inset 0 -2px 0 var(--primary);
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.db-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.dot.active {
+  background: var(--emerald);
+  box-shadow: 0 0 8px var(--emerald);
+}
+
+.btn-nav-outline {
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #3b4e68;
+  background: transparent;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s;
+}
+
+.btn-nav-outline:hover {
+  background: var(--surface);
+  border-color: var(--primary);
+}

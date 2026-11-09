@@ -1,0 +1,129 @@
+/**
+ * Base: Tipografía y Jerarquías de Texto
+ * Títulos, párrafos, enlaces, código y utilidades tipográficas.
+ */
+
+a {
+  color: var(--primary-light);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: #bfdbfe;
+}
+
+code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: var(--font-mono);
+}
+
+/* Encabezados y Títulos */
+.header h1,
+.page-header h1 {
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  font-weight: 700;
+}
+
+.header h1 {
+  font-size: clamp(1.8rem, 4vw, 2.45rem);
+  margin-bottom: 0.6rem;
+}
+
+.page-header h1 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  margin-bottom: 0.25rem;
+}
+
+.card h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.panel-header h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+  letter-spacing: -0.025em;
+}
+
+.step-item h3,
+.legal-clause h3 {
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.4rem;
+}
+
+/* Subtítulos y Párrafos */
+.subtitle,
+.subtitle-left,
+.card-desc,
+.panel-subtitle {
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+.subtitle {
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.subtitle-left {
+  font-size: 0.92rem;
+}
+
+.card-desc {
+  font-size: 0.92rem;
+}
+
+.panel-subtitle {
+  font-size: 0.82rem;
+}
+
+.step-item p,
+.legal-clause p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.52;
+}
+
+/* Utilidades Tipográficas */
+.text-right {
+  text-align: right !important;
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.cell-primary {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cell-secondary {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.text-emerald {
+  color: var(--emerald-light);
+  font-weight: 600;
+}
+
+.text-danger {
+  color: var(--danger-light);
+  font-weight: 600;
+}
+
+.text-amber {
+  color: var(--amber-light);
+  font-weight: 600;
+}

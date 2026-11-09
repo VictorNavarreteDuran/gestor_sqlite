@@ -1,3 +1,5 @@
+import { clearSession, downloadActiveDatabaseFile } from '../db/engine.js';
+
 const navDbName = document.getElementById('navDbName');
 const navLinks = document.querySelectorAll('.nav-link');
 const downloadActiveDbBtn = document.getElementById('downloadActiveDbBtn');
@@ -59,7 +61,7 @@ export function initNavbar(sectionHandlers = {}) {
   if (downloadActiveDbBtn) {
     downloadActiveDbBtn.addEventListener('click', async () => {
       try {
-        await window.LocalSqliteEngine.downloadActiveDatabaseFile();
+        await downloadActiveDatabaseFile();
       } catch (err) {
         window.alert(err.message || 'No se pudo descargar el archivo .db');
       }
@@ -68,7 +70,7 @@ export function initNavbar(sectionHandlers = {}) {
 
   if (closeDbSessionBtn) {
     closeDbSessionBtn.addEventListener('click', async () => {
-      await window.LocalSqliteEngine.clearSession();
+      await clearSession();
       window.location.href = '/';
     });
   }

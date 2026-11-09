@@ -5,6 +5,7 @@ import {
   formatCompactCurrency,
 } from '../utils/formatters.js';
 import { updateNavDbLabel } from '../components/navbar.js';
+import { getFinanceSectionData } from '../db/repositories/finance.repo.js';
 
 let activeFinanceMonths = 1;
 
@@ -533,7 +534,7 @@ export async function loadFinanceSection(months = activeFinanceMonths) {
   }
 
   try {
-    const data = await window.LocalSqliteEngine.getFinanceSectionData({
+    const data = await getFinanceSectionData({
       meses: activeFinanceMonths,
     });
     if (data.database?.originalName) {
@@ -544,6 +545,9 @@ export async function loadFinanceSection(months = activeFinanceMonths) {
     if (err && err.status === 404) {
       window.location.href = '/';
       return;
+    }
+    if (finChartContainer) {
+      finChartContainer.textContent = err.message || 'No se pudieron cargar los datos financieros.';
     }
   } finally {
     if (refreshFinanceBtn) {

@@ -8,6 +8,12 @@ import {
   sanitizeIntegerInputValue,
 } from '../utils/formatters.js';
 import { updateNavDbLabel } from '../components/navbar.js';
+import {
+  createProductWithInitialStock,
+  getStockManagementData,
+  registerStockEntry,
+  registerStockLossOrMerma,
+} from '../db/repositories/stock.repo.js';
 
 const stockActiveUser = document.getElementById('stockActiveUser');
 const refreshStockMgmtBtn = document.getElementById('refreshStockMgmtBtn');
@@ -447,7 +453,7 @@ export async function loadStockManagementSection() {
   }
 
   try {
-    const data = await window.LocalSqliteEngine.getStockManagementData({
+    const data = await getStockManagementData({
       tipo_movimiento: kardexFilterTipo?.value || '',
       limite: kardexFilterLimit?.value || '30',
     });
@@ -699,7 +705,7 @@ export function initKardexModule() {
           id_usuario: stockActiveUser.value || null,
         };
 
-        const data = await window.LocalSqliteEngine.createProductWithInitialStock(payload);
+        const data = await createProductWithInitialStock(payload);
         const syncNote = data.wroteDirectlyToDisk
           ? `guardado directamente en tu archivo local "${data.savedToFile}"`
           : `actualizado en "${data.savedToFile}" (en tu navegador)`;
@@ -755,7 +761,7 @@ export function initKardexModule() {
           motivo: seMotivo.value.trim() || 'Reposición de stock',
         };
 
-        const data = await window.LocalSqliteEngine.registerStockEntry(payload);
+        const data = await registerStockEntry(payload);
 
         showFeedback(
           seFeedback,
@@ -802,7 +808,7 @@ export function initKardexModule() {
           motivo: slMotivo.value.trim(),
         };
 
-        const data = await window.LocalSqliteEngine.registerStockLossOrMerma(payload);
+        const data = await registerStockLossOrMerma(payload);
 
         showFeedback(
           slFeedback,

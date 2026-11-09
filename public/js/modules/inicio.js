@@ -6,6 +6,7 @@ import {
   getTrendMeta,
 } from '../utils/formatters.js';
 import { updateNavDbLabel, setNavDbStatusText } from '../components/navbar.js';
+import { getDashboardData } from '../db/repositories/dashboard.repo.js';
 
 const refreshBtn = document.getElementById('refreshBtn');
 
@@ -829,7 +830,7 @@ export async function loadDashboard() {
   }
 
   try {
-    const data = await window.LocalSqliteEngine.getDashboardData();
+    const data = await getDashboardData();
     updateNavDbLabel(data.database);
 
     const s = data.salesSummary || {};

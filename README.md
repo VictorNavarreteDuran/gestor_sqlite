@@ -71,10 +71,8 @@ Al abrir una base existente, la aplicación activa las claves foráneas e intent
 base_sqlite_PIME/
 ├── public/
 │   ├── index.html                 # Inicio: abrir o crear una base y consultar el aviso
-│   ├── app.js                     # Flujo de carga de archivos de la pantalla inicial
+│   ├── app.js                     # Flujo de carga de archivos; usa el motor SQLite compartido
 │   ├── dashboard.html             # Contenedor del panel modular
-│   ├── dashboard.js               # Archivo anterior; dashboard.html usa js/dashboard.js
-│   ├── local-sqlite.js            # Fachada del motor SQLite para la pantalla inicial y el panel
 │   ├── styles.css                 # Estilos de la aplicación
 │   ├── js/
 │   │   ├── dashboard.js           # Orquestación e inicialización del panel
@@ -83,9 +81,9 @@ base_sqlite_PIME/
 │   │   │   └── template-loader.js  # Carga de plantillas HTML
 │   │   ├── db/
 │   │   │   ├── constants.js
-│   │   │   ├── engine.js           # SQLite local, sesión y operaciones comunes
+│   │   │   ├── engine.js           # SQLite local, sesión y operaciones comunes del panel
 │   │   │   ├── schema.js           # Esquema, trigger e índices
-│   │   │   └── repositories/       # Consultas y operaciones por dominio
+│   │   │   └── repositories/       # Consultas y escrituras por dominio
 │   │   ├── modules/                # Inicio, inventario, ventas, Kardex, clientes y finanzas
 │   │   └── utils/
 │   │       └── formatters.js
@@ -95,6 +93,8 @@ base_sqlite_PIME/
 ├── package.json
 └── README.md
 ```
+
+La pantalla inicial y el panel usan `js/db/engine.js` como motor SQLite compartido; las secciones del panel consumen los repositorios del dominio. No hay un motor global duplicado ni una implementación monolítica alternativa del dashboard.
 
 ## Requisitos y ejecución
 

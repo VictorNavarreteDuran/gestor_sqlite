@@ -1,0 +1,137 @@
+/**
+ * Componentes: Botones
+ * Botones del sistema, variantes, estados interactivos y micro-botones.
+ */
+
+.btn {
+  border: none;
+  min-height: 42px;
+  border-radius: 9px;
+  padding: 0.8rem 1.2rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  cursor: pointer;
+  color: #fff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.2);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Variantes de Color */
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--emerald-hover);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger-hover);
+}
+
+.btn-refresh {
+  background: var(--surface);
+  border: 1px solid #3b4e68;
+  font-size: 0.85rem;
+  padding: 0.6rem 1rem;
+  color: var(--text);
+}
+
+.btn-refresh:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--primary);
+}
+
+/* Tamaños */
+.btn-sm {
+  min-height: auto;
+  padding: 0.58rem 0.95rem;
+  font-size: 0.85rem;
+}
+
+.btn-xs {
+  min-height: auto;
+  padding: 0.38rem 0.65rem;
+  font-size: 0.78rem;
+  border-radius: 6px;
+}
+
+/* Micro-botones Especializados */
+.btn-chip {
+  background: var(--bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.btn-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary-light);
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.btn-chip:focus-visible {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 3px;
+}
+
+.btn-remove-line {
+  background: rgba(239, 68, 68, 0.14);
+  color: var(--danger-light);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  padding: 0.28rem 0.52rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.btn-remove-line:hover {
+  background: rgba(239, 68, 68, 0.28);
+}
+
+.btn-remove-line:focus-visible {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 3px;
+}

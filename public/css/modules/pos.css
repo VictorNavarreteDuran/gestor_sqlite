@@ -1,0 +1,125 @@
+/**
+ * Módulos: Punto de Venta (POS)
+ * Layout de POS, buscador de productos, carrito de venta, descuentos y totales.
+ */
+
+.pos-layout-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.pos-ticket-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.pos-products-scroll {
+  max-height: 540px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #405675 transparent;
+}
+
+.pos-cart-scroll {
+  max-height: 290px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(11, 18, 32, 0.55);
+  scrollbar-width: thin;
+  scrollbar-color: #405675 transparent;
+}
+
+.pos-qty-input {
+  width: 68px;
+  border-radius: 6px;
+  padding: 0.35rem 0.45rem;
+  font-size: 0.82rem;
+  text-align: right;
+}
+
+.pos-add-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+/* Caja de Descuento en la Venta Total */
+.pos-discount-box {
+  background: rgba(59, 130, 246, 0.07);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  border-radius: var(--radius-md);
+  padding: 0.95rem 1.05rem;
+}
+
+.pos-discount-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pos-quick-discounts {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.pos-discount-applied {
+  background: var(--bg);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: var(--amber-light);
+  border-radius: 8px;
+  padding: 0.56rem 0.75rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+/* Caja de Totales y Subtotales */
+.pos-totals-box {
+  background: linear-gradient(145deg, rgba(11, 18, 32, 0.85), rgba(20, 32, 51, 0.9));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.95rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.pos-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.88rem;
+}
+
+.pos-total-row.muted-row {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.pos-total-row.discount-row {
+  color: var(--amber-light);
+  font-weight: 600;
+}
+
+.pos-total-row.grand-total-row {
+  margin-top: 0.35rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border);
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--emerald-light);
+}
+
+.pos-submit-btn {
+  width: 100%;
+  padding: 0.9rem 1.2rem;
+  font-size: 1rem;
+}

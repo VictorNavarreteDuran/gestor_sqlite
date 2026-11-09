@@ -1,3 +1,9 @@
+import {
+  clearSession,
+  downloadEmptyDatabaseFile,
+  loadDatabaseFromFile,
+} from './js/db/engine.js';
+
 const fileInput = document.getElementById('dbfile');
 const fileLabel = document.getElementById('fileLabel');
 const dropzone = document.getElementById('dropzone');
@@ -97,7 +103,7 @@ function updateActiveDbBanner(db) {
 // Cada ingreso a la pantalla inicial limpia la sesión previa y exige seleccionar una base de nuevo.
 async function resetSessionOnEntry() {
   try {
-    await window.LocalSqliteEngine.clearSession();
+    await clearSession();
   } catch (_) {}
   updateActiveDbBanner(null);
 }
@@ -207,10 +213,7 @@ uploadForm.addEventListener('submit', async (e) => {
       } catch (_) {}
     }
 
-    const dbMeta = await window.LocalSqliteEngine.loadDatabaseFromFile(
-      fileToLoad,
-      selectedFileHandle
-    );
+    const dbMeta = await loadDatabaseFromFile(fileToLoad, selectedFileHandle);
 
     uploadResult.classList.remove('hidden', 'error');
     uploadResult.classList.add('success');
@@ -234,7 +237,7 @@ downloadEmptyBtn.addEventListener('click', async () => {
   const rawName = emptyDbNameInput.value.trim() || 'nueva_base';
   downloadEmptyBtn.disabled = true;
   try {
-    await window.LocalSqliteEngine.downloadEmptyDatabaseFile(rawName);
+    await downloadEmptyDatabaseFile(rawName);
   } catch (err) {
     uploadResult.classList.remove('hidden', 'success');
     uploadResult.classList.add('error');

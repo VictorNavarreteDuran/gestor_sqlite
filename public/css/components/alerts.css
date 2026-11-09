@@ -1,0 +1,130 @@
+/**
+ * Componentes: Alertas, Insignias y Mensajes de Estado
+ * Badges, etiquetas de estado, notificaciones de feedback y banner de base activa.
+ */
+
+/* Badges e Insignias */
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--primary-light);
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  margin-bottom: 0.85rem;
+}
+
+.panel-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.status-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+/* Variantes de Color para Badges y Tags */
+.panel-badge.info,
+.status-tag.info {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--primary-light);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.panel-badge.success-badge,
+.status-tag.success {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--emerald-light);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.panel-badge.warning,
+.status-tag.warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--amber-light);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.panel-badge.danger,
+.status-tag.danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger-light);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.status-tag.info,
+.status-tag.success,
+.status-tag.warning,
+.status-tag.danger {
+  border: none;
+}
+
+/* Cajas de Estado / Feedback */
+.status-box {
+  padding: 0.95rem 1.05rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.status-box.success {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #6ee7b7;
+}
+
+.status-box.error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: var(--danger-light);
+}
+
+/* Banner de Base de Datos Activa */
+.active-db-banner {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.1rem 1.4rem;
+}
+
+.banner-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.95rem;
+}
+
+.banner-details {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.banner-link {
+  margin-left: auto;
+  color: var(--primary-light);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.banner-link:hover {
+  text-decoration: underline;
+}

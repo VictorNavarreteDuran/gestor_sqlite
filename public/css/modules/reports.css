@@ -1,0 +1,248 @@
+/**
+ * Módulos: Reportes, Gráficos y Comparativas
+ * Gráficos SVG, indicadores de tendencia, barras comparativas e informes financieros.
+ */
+
+.chart-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+/* Banner de Tendencia y Comparativa */
+.trend-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 0.95rem;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.trend-banner.up {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.trend-banner.down {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.trend-banner-main {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.trend-banner-text {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.trend-banner-text strong {
+  color: var(--text);
+}
+
+/* Pastilla de Dirección de Tendencia */
+.trend-direction-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.trend-direction-pill.sm {
+  padding: 0.16rem 0.5rem;
+  font-size: 0.71rem;
+}
+
+.trend-direction-pill.up {
+  background: rgba(16, 185, 129, 0.18);
+  color: var(--emerald-light);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.trend-direction-pill.down {
+  background: rgba(239, 68, 68, 0.18);
+  color: var(--danger-light);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.trend-direction-pill.neutral {
+  background: rgba(148, 163, 184, 0.16);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+/* Leyenda del Gráfico */
+.trend-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legend-dot.up,
+.comp-bar-fill.up {
+  background: var(--emerald);
+}
+
+.legend-dot.down,
+.comp-bar-fill.down {
+  background: var(--danger);
+}
+
+.legend-dot.current,
+.comp-bar-fill.neutral {
+  background: var(--primary);
+}
+
+/* Envoltorios de Gráficos SVG */
+.svg-chart-wrapper {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.75rem 0.35rem;
+  overflow: hidden;
+}
+
+.comparison-svg-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Tiras de Resumen de Gráfico */
+.chart-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.65rem;
+}
+
+.chart-summary-item {
+  background: rgba(11, 18, 32, 0.52);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  padding: 0.55rem 0.75rem;
+  gap: 0.2rem;
+}
+
+.chart-summary-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.chart-summary-value {
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+/* Tarjetas y Barras de Comparativa */
+.comp-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.65rem;
+}
+
+.comp-metric-card {
+  background: rgba(11, 18, 32, 0.52);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  padding: 0.65rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.comp-metric-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.comp-metric-title {
+  font-size: 0.79rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.comp-bars-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.comp-bar-row {
+  display: grid;
+  grid-template-columns: 74px 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.74rem;
+}
+
+.comp-bar-period {
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.comp-bar-period.current {
+  color: var(--primary-light);
+  font-weight: 600;
+}
+
+.comp-bar-track {
+  height: 7px;
+  background: #2a3a50;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.comp-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.comp-bar-fill.prev {
+  background: #64748b;
+}
+
+.comp-bar-amount {
+  color: var(--text-muted);
+  text-align: right;
+  min-width: 68px;
+}
+
+.comp-bar-amount.current {
+  color: var(--text);
+  font-weight: 700;
+}

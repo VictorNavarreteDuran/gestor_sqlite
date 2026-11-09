@@ -4,6 +4,12 @@ import {
   showFeedback,
 } from '../utils/formatters.js';
 import { updateNavDbLabel } from '../components/navbar.js';
+import {
+  deleteClientRecord,
+  exportClientPersonalData,
+  getClientsAndSuppliersData,
+  saveClientRecord,
+} from '../db/repositories/clients.repo.js';
 
 const refreshClientsBtn = document.getElementById('refreshClientsBtn');
 const clientForm = document.getElementById('clientForm');
@@ -92,7 +98,7 @@ export async function loadClientsSection() {
   refreshClientsBtn.disabled = true;
   try {
     const searchQuery = clientSearchInput ? clientSearchInput.value.trim() : '';
-    const data = await window.LocalSqliteEngine.getClientsAndSuppliersData({
+    const data = await getClientsAndSuppliersData({
       q: searchQuery,
       limite: 5,
     });
@@ -107,6 +113,7 @@ export async function loadClientsSection() {
       window.location.href = '/';
       return;
     }
+    showFeedback(cliFeedback, 'error', err.message || 'No se pudieron cargar los clientes.');
   } finally {
     refreshClientsBtn.disabled = false;
   }
@@ -142,7 +149,7 @@ export function initClientesModule() {
       if (cliSubmitBtn) cliSubmitBtn.disabled = true;
       if (cliFeedback) cliFeedback.classList.add('hidden');
       try {
-        const res = await window.LocalSqliteEngine.saveClientRecord({
+        const res = await saveClientRecord({
           id_cliente: cliId.value || null,
           nombre: cliNombre.value,
           rut_identificacion: cliRut.value,
@@ -206,7 +213,7 @@ export function initClientesModule() {
       const exportBtn = e.target.closest('[data-cli-export]');
       if (exportBtn) {
         try {
-          await window.LocalSqliteEngine.exportClientPersonalData(Number(exportBtn.dataset.cliExport));
+          await exportClientPersonalData(Number(exportBtn.dataset.cliExport));
         } catch (err) {
           showFeedback(cliFeedback, 'error', err.message);
         }
@@ -223,7 +230,7 @@ export function initClientesModule() {
           )
         ) {
           try {
-            await window.LocalSqliteEngine.deleteClientRecord(id);
+            await deleteClientRecord(id);
             await loadClientsSection();
           } catch (err) {
             showFeedback(cliFeedback, 'error', err.message);

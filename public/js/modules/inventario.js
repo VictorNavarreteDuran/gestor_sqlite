@@ -1,5 +1,9 @@
 import { formatCurrency, formatNumber, escapeHtml } from '../utils/formatters.js';
 import { updateNavDbLabel } from '../components/navbar.js';
+import {
+  getInventorySectionData,
+  searchInventoryProducts,
+} from '../db/repositories/inventory.repo.js';
 
 const refreshInventoryBtn = document.getElementById('refreshInventoryBtn');
 const invUrgentLimit = document.getElementById('invUrgentLimit');
@@ -227,7 +231,7 @@ export async function loadInventorySection() {
   }
 
   try {
-    const data = await window.LocalSqliteEngine.getInventorySectionData({
+    const data = await getInventorySectionData({
       q: invSearchInput?.value.trim() || DEFAULT_INVENTORY_PARAMS.q,
       id_categoria: invCategoryFilter?.value || DEFAULT_INVENTORY_PARAMS.id_categoria,
       unidad_medida: invUnitFilter?.value || DEFAULT_INVENTORY_PARAMS.unidad_medida,
@@ -269,7 +273,7 @@ export async function loadInventorySection() {
 
 async function executeProductSearch() {
   try {
-    const result = await window.LocalSqliteEngine.searchInventoryProducts({
+    const result = await searchInventoryProducts({
       q: invSearchInput?.value.trim() || DEFAULT_INVENTORY_PARAMS.q,
       id_categoria: invCategoryFilter?.value || DEFAULT_INVENTORY_PARAMS.id_categoria,
       unidad_medida: invUnitFilter?.value || DEFAULT_INVENTORY_PARAMS.unidad_medida,
@@ -277,7 +281,19 @@ async function executeProductSearch() {
       limite: invLimitFilter?.value || DEFAULT_INVENTORY_PARAMS.limite,
     });
     renderInvSearchResults(result);
-  } catch (_) {}
+  } catch (err) {
+    if (err && err.status === 404) {
+      window.location.href = '/';
+      return;
+    }
+    if (invSearchResultsBody) {
+      invSearchResultsBody.innerHTML = `
+        <tr>
+          <td colspan="11" class="empty-cell">${escapeHtml(err.message)}</td>
+        </tr>
+      `;
+    }
+  }
 }
 
 export function initInventarioModule() {

@@ -2,6 +2,7 @@ import {
   MESES_NOMBRES_ES,
 } from '../constants.js';
 import {
+  activeFileMeta,
   ensureLoadedInTab,
   listUserTables,
   queryAll,

@@ -1,4 +1,5 @@
 import {
+  activeFileMeta,
   ensureLoadedInTab,
   queryAll,
   queryGet,

@@ -1,0 +1,268 @@
+/**
+ * Módulos: Inventario, Gestión de Stock y Catálogo
+ * Selectores de acción, buscador reactivo de productos y pestañas de alertas de stock.
+ */
+
+.stock-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+/* Selector de Operación de Stock (Launcher) */
+.stock-launcher-card {
+  /* Estilos específicos del launcher */
+}
+
+.stock-launcher-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 0.9rem;
+}
+
+.stock-action-choice-btn {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  text-align: left;
+  background: rgba(17, 29, 47, 0.82);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.1rem;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    transform 0.14s ease,
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.stock-action-choice-btn:hover {
+  background: var(--surface-hover);
+  transform: translateY(-1px);
+}
+
+.stock-action-choice-btn:focus-visible,
+.stock-tab-btn:focus-visible {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 3px;
+}
+
+.stock-action-choice-btn.choice-info.active {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
+}
+
+.stock-action-choice-btn.choice-success.active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--emerald);
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.35);
+}
+
+.stock-action-choice-btn.choice-danger.active {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.35);
+}
+
+.choice-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.choice-content strong {
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.choice-content small {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* Buscador de Productos y Barra de Filtrado */
+.search-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  background: rgba(15, 27, 44, 0.72);
+  border: 1px solid var(--border);
+  padding: 0.85rem;
+  border-radius: var(--radius-md);
+}
+
+.search-input-wrap {
+  flex: 1 1 260px;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.55rem 0.8rem;
+  color: var(--text-muted);
+  min-height: 42px;
+}
+
+.search-input-wrap input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 0.88rem;
+}
+
+.stock-search-bar {
+  flex: unset;
+  width: 100%;
+}
+
+.stock-search-results {
+  margin-top: 0.35rem;
+  background: #101b2c;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-md);
+  z-index: 5;
+}
+
+.stock-search-result-item {
+  width: 100%;
+  min-height: 48px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.6rem 0.85rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.84rem;
+  transition: background 0.15s;
+}
+
+.stock-search-result-item:last-child {
+  border-bottom: none;
+}
+
+.stock-search-result-item:hover {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.stock-search-result-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.stock-search-result-main span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.stock-search-result-stock {
+  font-size: 0.78rem;
+  color: var(--emerald-light);
+  white-space: nowrap;
+}
+
+.stock-search-empty {
+  padding: 0.75rem 0.9rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* Pastilla de Producto Seleccionado */
+.selected-product-pill {
+  margin-top: 0.3rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+.selected-product-pill.success {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.09);
+  color: #d1fae5;
+}
+
+.selected-product-pill.warning {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.09);
+  color: #fde68a;
+}
+
+.selected-product-pill.danger {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.09);
+  color: #fecaca;
+}
+
+/* Pestañas de Alertas de Stock */
+.stock-alert-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.stock-tab-btn {
+  background: rgba(15, 23, 42, 0.65);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.stock-tab-btn:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.stock-tab-btn.active,
+.stock-tab-btn.info.active {
+  background: rgba(59, 130, 246, 0.18);
+  color: var(--primary-light);
+  border-color: rgba(59, 130, 246, 0.45);
+}
+
+.stock-tab-btn.danger.active {
+  background: rgba(239, 68, 68, 0.18);
+  color: var(--danger-light);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+.stock-tab-btn.warning.active {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--amber-light);
+  border-color: rgba(245, 158, 11, 0.45);
+}
