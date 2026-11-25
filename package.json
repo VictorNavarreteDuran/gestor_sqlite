@@ -7,11 +7,14 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "build": "node scripts/build.js",
-    "dev:cf": "npm run build && npx wrangler dev",
-    "deploy": "npm run build && npx wrangler deploy"
+    "dev:cf": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
   "dependencies": {
     "express": "^4.21.2",
     "sql.js": "^1.13.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.168.0"
   }
 }

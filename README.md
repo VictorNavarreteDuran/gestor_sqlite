@@ -1,6 +1,6 @@
 # Gestor SQLite PIME
 
-Aplicación local para administrar ventas, productos e inventario de una pequeña empresa usando archivos SQLite. El motor `sql.js` (SQLite compilado a WebAssembly) se ejecuta en el navegador; Express sirve los archivos de la aplicación y no recibe la base de datos.
+Aplicación para administrar ventas, productos e inventario usando archivos SQLite. El motor `sql.js` (SQLite compilado a WebAssembly) se ejecuta en el navegador; Express sirve la versión local y Cloudflare Workers publica los mismos recursos como assets estáticos. La base de datos no se envía al servidor.
 
 ## Contenido
 
@@ -28,7 +28,7 @@ Las cantidades de inventario usan unidades de medida como `UN`, `KG`, `LT`, `MT`
 
 ## Almacenamiento y privacidad
 
-- Las consultas y operaciones SQLite se ejecutan en el navegador. El servidor Express entrega los recursos estáticos y los archivos de `sql.js`; no hay una API de carga de bases de datos.
+- Las consultas y operaciones SQLite se ejecutan en el navegador. Express entrega los recursos estáticos en local; Cloudflare sirve el build estático y los archivos de `sql.js`. No hay una API de carga de bases de datos.
 - La aplicación mantiene una copia de trabajo local en el navegador durante la sesión. Al volver a la pantalla de inicio o cerrar la sesión desde el panel, elimina esa sesión local.
 - En navegadores compatibles, y con el permiso correspondiente, los cambios pueden escribirse directamente en el archivo seleccionado. En caso contrario, se puede descargar una copia actualizada desde el panel.
 - El archivo original no se modifica al abrirlo. Aun así, mantén respaldos antes de operar sobre bases importantes.
@@ -39,7 +39,7 @@ El diseño evita enviar la base de datos al servidor, pero esto por sí solo no 
 
 - **Interfaz:** HTML, CSS y módulos JavaScript nativos; las secciones del panel se cargan desde plantillas.
 - **Persistencia local:** `sql.js` ejecuta SQLite en WebAssembly. El archivo se abre en el navegador y puede exportarse de nuevo a disco.
-- **Servidor:** Express entrega archivos estáticos, comprime recursos con Brotli/Gzip y establece cabeceras de seguridad.
+- **Servidor:** Express entrega archivos estáticos en desarrollo local. En producción, Cloudflare Workers Static Assets entrega el contenido de `dist/` y aplica las cabeceras de `public/_headers`.
 - **Relaciones:** el motor activa `PRAGMA foreign_keys = ON`.
 - **Stock:** el trigger `trg_actualizar_stock_kardex`, al insertar un movimiento, actualiza el stock del producto usando el stock resultante del movimiento. Las operaciones de negocio registran los cambios mediante movimientos de inventario.
 - **Ventas:** el detalle conserva el precio y costo unitarios históricos; las ventas incluyen pagos asociados y admiten registrar más de un medio de pago.
@@ -90,6 +90,9 @@ base_sqlite_PIME/
 │   └── templates/                 # Plantillas de navegación y secciones del panel
 ├── src/
 │   └── server.js                  # Servidor estático Express
+├── scripts/
+│   └── build.js                   # Prepara public/ y los archivos WebAssembly de sql.js en dist/
+├── wrangler.toml                  # Despliegue de assets estáticos en Cloudflare Workers
 ├── package.json
 └── README.md
 ```
@@ -116,6 +119,22 @@ npm start
 ```
 
 Abre `http://localhost:3000`. El puerto se puede cambiar con la variable de entorno `PORT`.
+
+### Ejecutar y desplegar en Cloudflare
+
+El despliegue usa **Cloudflare Workers Static Assets**: Cloudflare sirve el contenido estático de `dist/`; no ejecuta `src/server.js` ni necesita una base de datos en el servidor. El build copia `public/` y los archivos de `sql.js` necesarios a `dist/vendor/sql.js/`.
+
+```bash
+npm run dev:cf
+```
+
+Esto inicia Wrangler localmente. Para publicar, autentícate una vez con `npx wrangler login` y ejecuta:
+
+```bash
+npm run deploy
+```
+
+La configuración de `wrangler.toml` ejecuta `npm run build` antes de iniciar o desplegar. Para usar integración de despliegue desde Cloudflare, configura `npm run deploy` como comando de despliegue y usa la raíz del proyecto como directorio de trabajo.
 
 ## Uso básico
 
