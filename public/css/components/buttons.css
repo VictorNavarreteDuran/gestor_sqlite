@@ -12,8 +12,8 @@
   font-weight: 600;
   letter-spacing: 0.005em;
   cursor: pointer;
-  color: #fff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-sm);
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast),
@@ -23,7 +23,7 @@
 
 .btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-md);
 }
 
 .btn:active:not(:disabled) {
@@ -38,7 +38,7 @@
 
 /* Variantes de Color */
 .btn-primary {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -46,7 +46,7 @@
 }
 
 .btn-secondary {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, var(--emerald), var(--emerald-hover));
 }
 
 .btn-secondary:hover:not(:disabled) {
@@ -54,7 +54,7 @@
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  background: linear-gradient(135deg, var(--danger), var(--danger-hover));
 }
 
 .btn-danger:hover:not(:disabled) {
@@ -63,7 +63,7 @@
 
 .btn-refresh {
   background: var(--surface);
-  border: 1px solid #3b4e68;
+  border: 1px solid var(--border);
   font-size: 0.85rem;
   padding: 0.6rem 1rem;
   color: var(--text);
@@ -107,8 +107,8 @@
 
 .btn-chip:hover {
   border-color: var(--primary);
-  color: var(--primary-light);
-  background: rgba(59, 130, 246, 0.12);
+  color: var(--primary);
+  background: var(--primary-light);
 }
 
 .btn-chip:focus-visible {
@@ -117,18 +117,19 @@
 }
 
 .btn-remove-line {
-  background: rgba(239, 68, 68, 0.14);
-  color: var(--danger-light);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: var(--danger-light);
+  color: var(--danger);
+  border: 1px solid var(--danger-light);
   border-radius: 6px;
   padding: 0.28rem 0.52rem;
   font-size: 0.78rem;
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .btn-remove-line:hover {
-  background: rgba(239, 68, 68, 0.28);
+  background: var(--danger);
+  color: var(--text-inverse);
 }
 
 .btn-remove-line:focus-visible {

@@ -19,7 +19,7 @@
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: rgba(11, 18, 32, 0.75);
+  background: var(--overlay-bg);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
@@ -29,7 +29,7 @@
 }
 
 .modal-content {
-  background: var(--surface);
+  background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);

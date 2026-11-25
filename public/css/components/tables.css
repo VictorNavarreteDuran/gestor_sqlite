@@ -22,13 +22,13 @@
 .data-table th {
   text-align: left;
   padding: 0.65rem 0.75rem;
-  color: #b8c5d6;
+  color: var(--text-muted);
   font-weight: 600;
   font-size: 0.76rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   border-bottom: 1px solid var(--border);
-  background: rgba(11, 18, 32, 0.62);
+  background: var(--surface);
   white-space: nowrap;
 }
 
@@ -48,7 +48,7 @@
 }
 
 .data-table tbody tr:hover {
-  background: rgba(96, 165, 250, 0.055);
+  background: var(--surface-hover);
 }
 
 .empty-cell {

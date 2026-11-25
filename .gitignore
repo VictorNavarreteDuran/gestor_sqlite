@@ -1,6 +1,10 @@
 # Dependencias
 node_modules/
 
+# Build estático y caché local de Cloudflare Wrangler
+dist/
+.wrangler/
+
 # Bases de datos SQLite y archivos auxiliares (modo WAL / Journal)
 *.db
 *.db-wal

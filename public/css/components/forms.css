@@ -19,7 +19,7 @@
 .input-group label,
 .kpi-label {
   font-size: 0.85rem;
-  color: #b8c5d6;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -27,8 +27,8 @@
 .input-suffix-wrapper {
   display: flex;
   align-items: center;
-  background-color: #101b2c;
-  border: 1px solid #3a4d68;
+  background-color: var(--bg);
+  border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
   transition:
@@ -52,7 +52,7 @@
   color: var(--text-muted);
   font-family: var(--font-mono);
   font-size: 0.9rem;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface);
   height: 100%;
   display: flex;
   align-items: center;
@@ -63,9 +63,9 @@
 .form-input,
 .filter-select,
 .pos-qty-input {
-  background-color: #101b2c;
+  background-color: var(--bg);
   color: var(--text);
-  border: 1px solid #3a4d68;
+  border: 1px solid var(--border);
   border-radius: 8px;
   outline: none;
   transition:
@@ -96,12 +96,12 @@
 
 .filter-select option {
   color: var(--text);
-  background: var(--surface);
+  background: var(--bg);
 }
 
 .form-input::placeholder,
 .search-input-wrap input::placeholder {
-  color: #8292a8;
+  color: var(--text-muted);
   opacity: 1;
 }
 
@@ -110,7 +110,7 @@
 .filter-select:hover,
 .pos-qty-input:hover,
 .input-suffix-wrapper:hover {
-  border-color: #526985;
+  border-color: var(--primary);
 }
 
 .form-input:focus,
@@ -120,7 +120,7 @@
 .search-input-wrap:focus-within {
   border-color: var(--primary);
   box-shadow: var(--shadow-focus);
-  background-color: #111f33;
+  background-color: var(--bg);
 }
 
 /* Rejillas de Formulario */
@@ -148,14 +148,14 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  background: rgba(11, 18, 32, 0.25);
+  background: var(--surface);
   justify-content: center;
 }
 
 .dropzone:hover,
 .dropzone.dragover {
   border-color: var(--primary);
-  background: rgba(59, 130, 246, 0.06);
+  background: var(--primary-light);
 }
 
 .dropzone:focus-within {

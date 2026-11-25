@@ -1,0 +1,8 @@
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: no-referrer
+  Cache-Control: no-store
+
+/vendor/sql.js/*
+  Cache-Control: public, max-age=86400, immutable

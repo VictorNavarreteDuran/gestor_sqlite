@@ -4,17 +4,18 @@
  */
 
 a {
-  color: var(--primary-light);
+  color: var(--primary);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
 a:hover {
-  color: #bfdbfe;
+  color: var(--primary-hover);
 }
 
 code {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-hover);
+  color: var(--text);
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
   font-size: 0.9em;
@@ -114,16 +115,16 @@ code {
 }
 
 .text-emerald {
-  color: var(--emerald-light);
+  color: var(--emerald);
   font-weight: 600;
 }
 
 .text-danger {
-  color: var(--danger-light);
+  color: var(--danger);
   font-weight: 600;
 }
 
 .text-amber {
-  color: var(--amber-light);
+  color: var(--amber);
   font-weight: 600;
 }

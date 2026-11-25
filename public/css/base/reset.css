@@ -14,16 +14,13 @@
 html {
   min-height: 100%;
   scroll-behavior: smooth;
-  scrollbar-color: #425674 var(--bg);
+  scrollbar-color: var(--scrollbar-thumb) var(--bg);
 }
 
 body {
   font-family: var(--font-sans);
   background-color: var(--bg);
-  background:
-    radial-gradient(ellipse at top left, rgba(37, 99, 235, 0.09), transparent 34rem),
-    radial-gradient(ellipse at bottom right, rgba(16, 185, 129, 0.055), transparent 30rem),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   min-height: 100vh;
   display: flex;
@@ -73,14 +70,14 @@ button:disabled {
 
 /* Selección de texto */
 ::selection {
-  color: #fff;
-  background: rgba(59, 130, 246, 0.45);
+  color: var(--selection-text);
+  background: var(--selection-bg);
 }
 
 /* Scrollbars globales */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #405675 transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -93,13 +90,13 @@ button:disabled {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #405675;
+  background: var(--scrollbar-thumb);
   border: 2px solid transparent;
   background-clip: padding-box;
   border-radius: 999px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #58708f;
+  background: var(--scrollbar-thumb-hover);
   background-clip: padding-box;
 }

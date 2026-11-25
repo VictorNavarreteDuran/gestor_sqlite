@@ -19,7 +19,7 @@
   max-height: 540px;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: #405675 transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 .pos-cart-scroll {
@@ -27,9 +27,9 @@
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: rgba(11, 18, 32, 0.55);
+  background: var(--surface);
   scrollbar-width: thin;
-  scrollbar-color: #405675 transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 .pos-qty-input {
@@ -49,8 +49,8 @@
 
 /* Caja de Descuento en la Venta Total */
 .pos-discount-box {
-  background: rgba(59, 130, 246, 0.07);
-  border: 1px solid rgba(59, 130, 246, 0.28);
+  background: var(--primary-light);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 0.95rem 1.05rem;
 }
@@ -72,8 +72,8 @@
 
 .pos-discount-applied {
   background: var(--bg);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  color: var(--amber-light);
+  border: 1px solid var(--amber);
+  color: var(--amber);
   border-radius: 8px;
   padding: 0.56rem 0.75rem;
   font-size: 0.92rem;
@@ -83,7 +83,7 @@
 
 /* Caja de Totales y Subtotales */
 .pos-totals-box {
-  background: linear-gradient(145deg, rgba(11, 18, 32, 0.85), rgba(20, 32, 51, 0.9));
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 0.95rem 1.1rem;
@@ -105,7 +105,7 @@
 }
 
 .pos-total-row.discount-row {
-  color: var(--amber-light);
+  color: var(--amber);
   font-weight: 600;
 }
 
@@ -115,7 +115,7 @@
   border-top: 1px solid var(--border);
   font-size: 1.18rem;
   font-weight: 700;
-  color: var(--emerald-light);
+  color: var(--emerald);
 }
 
 .pos-submit-btn {

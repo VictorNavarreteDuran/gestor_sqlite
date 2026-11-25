@@ -19,17 +19,17 @@
   padding: 0.75rem 0.95rem;
   border-radius: 11px;
   border: 1px solid var(--border);
-  background: rgba(15, 23, 42, 0.6);
+  background: var(--surface);
 }
 
 .trend-banner.up {
-  border-color: rgba(16, 185, 129, 0.35);
-  background: rgba(16, 185, 129, 0.08);
+  border-color: var(--emerald);
+  background: var(--emerald-light);
 }
 
 .trend-banner.down {
-  border-color: rgba(239, 68, 68, 0.35);
-  background: rgba(239, 68, 68, 0.08);
+  border-color: var(--danger);
+  background: var(--danger-light);
 }
 
 .trend-banner-main {
@@ -66,21 +66,21 @@
 }
 
 .trend-direction-pill.up {
-  background: rgba(16, 185, 129, 0.18);
-  color: var(--emerald-light);
-  border: 1px solid rgba(16, 185, 129, 0.4);
+  background: var(--emerald-light);
+  color: var(--emerald);
+  border: 1px solid var(--emerald-light);
 }
 
 .trend-direction-pill.down {
-  background: rgba(239, 68, 68, 0.18);
-  color: var(--danger-light);
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: var(--danger-light);
+  color: var(--danger);
+  border: 1px solid var(--danger-light);
 }
 
 .trend-direction-pill.neutral {
-  background: rgba(148, 163, 184, 0.16);
-  color: #cbd5e1;
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: var(--surface-hover);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
 }
 
 /* Leyenda del Gráfico */
@@ -143,7 +143,7 @@
 }
 
 .chart-summary-item {
-  background: rgba(11, 18, 32, 0.52);
+  background: var(--surface);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   display: flex;
@@ -170,7 +170,7 @@
 }
 
 .comp-metric-card {
-  background: rgba(11, 18, 32, 0.52);
+  background: var(--surface);
   border: 1px solid var(--border-subtle);
   border-radius: 9px;
   padding: 0.65rem 0.8rem;
@@ -215,13 +215,13 @@
 }
 
 .comp-bar-period.current {
-  color: var(--primary-light);
+  color: var(--primary);
   font-weight: 600;
 }
 
 .comp-bar-track {
   height: 7px;
-  background: #2a3a50;
+  background: var(--border);
   border-radius: 999px;
   overflow: hidden;
 }
@@ -233,7 +233,7 @@
 }
 
 .comp-bar-fill.prev {
-  background: #64748b;
+  background: var(--text-muted);
 }
 
 .comp-bar-amount {

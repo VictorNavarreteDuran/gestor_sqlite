@@ -10,9 +10,9 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--primary-light);
-  background: rgba(59, 130, 246, 0.12);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: var(--primary);
+  background: var(--primary-light);
+  border: 1px solid var(--primary-light);
   padding: 0.3rem 0.75rem;
   border-radius: 999px;
   margin-bottom: 0.85rem;
@@ -38,30 +38,30 @@
 /* Variantes de Color para Badges y Tags */
 .panel-badge.info,
 .status-tag.info {
-  background: rgba(59, 130, 246, 0.15);
-  color: var(--primary-light);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary-light);
 }
 
 .panel-badge.success-badge,
 .status-tag.success {
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--emerald-light);
-  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: var(--emerald-light);
+  color: var(--emerald);
+  border: 1px solid var(--emerald-light);
 }
 
 .panel-badge.warning,
 .status-tag.warning {
-  background: rgba(245, 158, 11, 0.15);
-  color: var(--amber-light);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: var(--amber-light);
+  color: var(--amber);
+  border: 1px solid var(--amber-light);
 }
 
 .panel-badge.danger,
 .status-tag.danger {
-  background: rgba(239, 68, 68, 0.15);
-  color: var(--danger-light);
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: var(--danger-light);
+  color: var(--danger);
+  border: 1px solid var(--danger-light);
 }
 
 .status-tag.info,
@@ -80,15 +80,15 @@
 }
 
 .status-box.success {
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  color: #6ee7b7;
+  background: var(--emerald-light);
+  border: 1px solid var(--emerald);
+  color: var(--emerald);
 }
 
 .status-box.error {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.35);
-  color: var(--danger-light);
+  background: var(--danger-light);
+  border: 1px solid var(--danger);
+  color: var(--danger);
 }
 
 /* Banner de Base de Datos Activa */
@@ -120,7 +120,7 @@
 
 .banner-link {
   margin-left: auto;
-  color: var(--primary-light);
+  color: var(--primary);
   text-decoration: none;
   font-weight: 600;
 }
